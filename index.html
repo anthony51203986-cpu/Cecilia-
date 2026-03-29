@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Cecilia AI</title>
+
+<!-- Load Math.js, Tesseract -->
+<script src="https://cdn.jsdelivr.net/npm/mathjs@11/lib/browser/math.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAxZJ4jhWgMzmSarLaEqZNp3dMzwOCbHzk",
+    authDomain: "cecilia-ai-be4d0.firebaseapp.com",
+    projectId: "cecilia-ai-be4d0",
+    storageBucket: "cecilia-ai-be4d0.firebasestorage.app",
+    messagingSenderId: "994523408088",
+    appId: "1:994523408088:web:3bec94476b6a6fc7a6267d"
+  };
+
+  const app = firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+  window.storage = storage;
+  
+  db.enablePersistence().catch(err => console.log('Persistence:', err));
+  console.log("✅ Firebase initialized");
+</script>
+
+<style>
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #f5f7fb;
+  color: #333;
+  overscroll-behavior: none;
+  touch-action: pan-y;
+}
+
+#header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  padding-top: env(safe-area-inset-top);
+}
+
+#header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#menuBtn, #newChat, #accountBtn {
+  position: absolute;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #667eea;
+  padding: 8px;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#menuBtn {
+ left: 16px; 
+}
+#newChat {
+ right: 60px; 
+}
+#accountBtn {
+ right: 10px; 
+}
+
+#offlineIndicator {
+  position: fixed;
+  top: 52px;
+  left: 0;
+  right: 0;
+  background: #ff9800;
+  color: white;
+  text-align: center;
+  padding: 6px;
+  font-size: 14px;
+  z-index: 999;
+  transform: translateY(-100%);
+  transition: transform 0.3s;
+}
+#offlineIndicator.show {
+ transform: translateY(0);
+}
+
+#sidebar {
+  position: fixed;
+  left: -280px;
+  top: 0;
+  width: 280px;
+  height: 100%;
+  background: white;
+  transition: 0.3s ease;
+  overflow-y: auto;
+  border-right: 1px solid #e0e0e0;
+  z-index: 9999;
+  box-shadow: 2px 0 12px rgba(0,0,0,0.1);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+#sidebar.open {
+ left: 0; 
+}
+#sidebar h3 {
+ padding: 20px 16px 10px 16px;
+ margin: 0; font-size: 16px;
+ font-weight: 600; 
+}
+
+.chat-category-header {
+  padding: 12px 16px 4px 16px;
+  color: #888;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.historyItem {
+  padding: 14px 16px;
+  cursor: pointer;
+  color: #333;
+  font-size: 14px;
+  transition: background 0.2s;
+  border-left: 3px solid transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid #f0f0f0;
+  min-height: 48px;
+}
+.historyItem:hover {
+ background: #f5f5f5; 
+}
+.historyItem.pinned {
+ background: #f0f4ff;
+ border-left: 3px solid #667eea; 
+}
+
+#chat {
+  position: fixed;
+  top: 52px;
+  bottom: 68px;
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  -webkit-overflow-scrolling: touch;
+}
+
+#welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+#welcomeIcon {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  box-shadow: 0 10px 30px rgba(102,126,234,0.3);
+  animation: float 2.5s ease-in-out infinite;
+}
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+#welcome h2 {
+ font-size: 18px;
+ font-weight: 600;
+ color: #333;
+ margin: 0 0 6px 0; 
+}
+#welcome p {
+ font-size: 15px;
+ color: #8e8e93;
+ margin: 0; 
+}
+
+.message.user {
+  background: #D6E4FF;
+  color: black;
+  padding: 10px 16px;
+  border-radius: 20px 20px 4px 20px;
+  max-width: 80%;
+  margin: 4px 0;
+  align-self: flex-end;
+  font-size: 15px;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(102,126,234,0.2);
+}
+
+.message.bot {
+  max-width: 100%;
+  margin: 8px 0;
+  align-self: flex-start;
+}
+
+.ai-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+}
+.ai-icon {
+  font-size: 18px;
+  background: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.ai-name { 
+ font-weight: 600;
+ color: #667eea;
+ font-size: 15px; 
+}
+.ai-content {
+ color: #333; 
+ font-size: 15px;
+ line-height: 1.5;
+ padding-left: 0px;
+ white-space: pre-wrap;
+ }
+
+.cached-badge {
+  background: #2196f3;
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 8px;
+}
+
+
+@keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+.math-main-header {
+ font-weight: bold;
+ font-size: 18px;
+ color: #1a237e;
+ margin: 12px 0 4px;
+}
+.math-step-header {
+ font-weight: bold;
+ font-size: 16px;
+ color: #2c3e50;
+ margin: 12px 0 4px;
+}
+.math-equation {
+ background: #f8f9fa;
+ padding: 10px 14px;
+ border-radius: 12px;
+ margin: 8px 0;
+ font-family: monospace;
+ border-left: 3px solid #667eea;
+}
+.answer-actions {
+ display: flex;
+ gap: 6px;
+ margin-top: 6px;
+ margin-left: 0px;
+ flex-wrap: wrap; 
+}
+.action-btn {
+ background: #f0f2f5;
+ border: none;
+ padding: 6px 12px;
+ font-size: 13px;
+ border-radius: 30px;
+ cursor: pointer;
+ min-height: 36px;
+ transition: background 0.2s; 
+}
+.action-btn:hover {
+ background: #e0e4e9; 
+}
+
+.thinking {
+  display: flex;
+  gap: 4px;
+  padding: 12px 18px;
+  background: #f0f2f5;
+  border-radius: 24px;
+  width: fit-content;
+  margin-left: 0px;
+}
+.thinking span { 
+ width: 6px;
+ height: 6px;
+ background: #999;
+ border-radius: 50%;
+ animation: blinkDot 1.2s infinite;
+}
+@keyframes blinkDot { 0%,80%,100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+.speaking .ai-icon {
+ animation: speakingPulse 1s infinite; 
+}
+@keyframes speakingPulse { 0% { box-shadow: 0 0 0 0 #667eea; } 70% { box-shadow: 0 0 0 10px rgba(102,126,234,0); } 100% { box-shadow: 0 0 0 0 rgba(102,126,234,0); } }
+
+#actionBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  min-width: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+#actionBtn.voice-mode {
+ color: #667eea;
+}
+#actionBtn.send-mode {
+ color: #667eea; 
+transform: scale(1.1); 
+}
+#actionBtn.recording { 
+background: #f44336; 
+color: white; 
+animation: pulse 1.5s infinite; 
+}
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+#inputbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  min-height: 68px;
+  background: white;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  gap: 8px;
+  z-index: 1000;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+#inputContainer {
+ flex: 1;
+ display: flex;
+ flex-direction: column;
+ width: 100%; 
+}
+.input-row { 
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ width: 100%; 
+}
+#input {
+  flex: 1;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 24px;
+  border: 1.5px solid #e0e0e0;
+  background: #f8f9fa;
+  font-size: 15px;
+  outline: none;
+}
+#input:focus {
+ border-color: #667eea;
+ background: white; 
+}
+#plusBtn, #actionBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #667eea;
+  min-width: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+#imagePreviewArea { 
+ display: none; 
+ padding: 6px 8px;
+ background: #f0f2f5;
+ border-radius: 30px;
+ margin-bottom: 6px; 
+}
+#imagePreviewArea.show { 
+ display: block; 
+}
+.preview-content {
+ display: flex;
+ align-items: center;
+ gap: 8px; 
+}
+#previewImage {
+ width: 32px;
+ height: 32px;
+ border-radius: 6px;
+ object-fit: cover;
+ border: 2px solid #667eea; 
+}
+#previewFilename, #imageStatus {
+ font-size: 12px;
+ color: #666; 
+}
+#removeImageBtn {
+ background: none;
+ border: none;
+ color: #999;
+ font-size: 16px;
+ cursor: pointer;
+ padding: 2px 6px;
+ border-radius: 50%; 
+}
+#toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 14px;
+  z-index: 50000;
+  white-space: nowrap;
+}
+
+.auth-modal {
+  display: none;
+  position: fixed;
+  z-index: 30000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(5px);
+}
+.auth-content {
+  background: white;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 20px 20px 0 0;
+  padding: 20px;
+  animation: slideUp 0.3s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.auth-header {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ margin-bottom: 20px; 
+}
+.auth-header h2 {
+ margin: 0;
+ font-size: 20px;
+ color: #333;
+}
+.close-auth {
+ background: #f0f0f0;
+ border: none;
+ font-size: 24px;
+ cursor: pointer;
+ color: #666;
+ width: 40px;
+ height: 40px;
+ border-radius: 50%;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+}
+.auth-form {
+ display: none; 
+}
+.auth-form.active {
+ display: block; 
+}
+.auth-form h3 {
+ margin: 0 0 16px 0;
+ color: #333;
+ font-size: 18px;
+}
+.auth-form input {
+ width: 100%;
+ padding: 14px 16px;
+ margin: 8px 0;
+ border: 1.5px solid #e0e0e0;
+ border-radius: 12px;
+ font-size: 15px;
+ box-sizing: border-box; 
+}
+.auth-form input:focus {
+ outline: none;
+ border-color: #667eea; 
+}
+.auth-btn {
+  width: 100%;
+  padding: 14px;
+  margin: 16px 0 8px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-height: 48px;
+}
+.auth-btn:hover {
+ background: #5a67d8; 
+}
+.auth-btn.logout {
+ background: #f44336; 
+}
+.auth-switch {
+ text-align: center;
+ margin-top: 16px;
+ color: #666;
+ font-size: 14px; 
+}
+.auth-switch a {
+ color: #667eea;
+ text-decoration: none;
+ font-weight: 600;
+ margin-left: 4px; 
+}
+
+.password-wrapper {
+ position: relative;
+ width: 100%; 
+}
+.password-wrapper input {
+ width: 100%;
+ padding-right: 45px; 
+}
+.password-wrapper button {
+ position: absolute;
+ right: 10px;
+ top: 50%;
+ transform: translateY(-50%);
+ background: none;
+ border: none;
+ cursor: pointer;
+ font-size: 18px;
+ padding: 0;
+ color: #666; 
+}
+
+.profile-header {
+ text-align: left;
+ margin-bottom: 20px; 
+}
+.profile-header h2 {
+ font-size: 24px;
+ color: #333;
+ font-weight: 600;
+ margin: 0; 
+}
+.profile-avatar {
+ text-align: center;
+ margin: 20px 0;
+}
+#profileAvatar {
+ width: 100px;
+ height: 100px;
+ border-radius: 50%;
+ border: 3px solid #667eea;
+ object-fit: cover;
+ cursor: pointer;
+ display: block;
+ margin: 0 auto; 
+}
+#avatarInitials {
+ display: block;
+ font-size: 14px;
+ color: #667eea;
+ margin-top: 5px;
+ font-weight: 600;
+ text-align: center;
+}
+.profile-buttons {
+ display: flex;
+ gap: 15px;
+ justify-content: center;
+ margin: 15px 0; 
+}
+.profile-btn {
+ padding: 8px 20px;
+ border: 1px solid #e0e0e0;
+ background: white;
+ border-radius: 20px;
+ font-size: 14px;
+ cursor: pointer;
+ color: #333; 
+}
+.profile-welcome {
+ text-align: left;
+ margin: 20px 0 15px;
+ font-size: 18px;
+ color: #333;
+ font-weight: normal; 
+}
+.profile-welcome span {
+ font-weight: 600;
+ color: #667eea; 
+}
+.profile-info {
+ background: #f8f9fa;
+ border-radius: 12px;
+ padding: 16px;
+ margin: 15px 0; 
+}
+.info-item {
+ display: flex;
+ justify-content: space-between;
+ margin-bottom: 15px;
+ font-size: 14px; 
+}
+.info-label {
+ color: #666;
+ font-weight: 500; 
+}
+.info-value { 
+ color: #333;
+ font-weight: 500;
+ word-break: break-all;
+ text-align: right;
+ max-width: 60%; 
+}
+.sync-status {
+ margin: 16px 0;
+ padding: 10px; 
+ background: #f0f7f0;
+ border-radius: 8px;
+ font-size: 14px;
+ color: #2e7d32;
+ text-align: center;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 5px; 
+}
+.sync-status:before {
+ content: "✔";
+ font-weight: bold; 
+}
+.profile-actions {
+ display: flex; 
+gap: 12px; 
+margin-top: 20px; 
+}
+.profile-actions button {
+ flex: 1;
+ padding: 14px;
+ border: none;
+ border-radius: 8px;
+ font-size: 16px;
+ font-weight: 600;
+ cursor: pointer; 
+}
+.btn-logout {
+ background: #f44336;
+ color: white; 
+}
+.btn-sync {
+ background: #4CAF50;
+ color: white; 
+}
+
+.modal {
+ display: none;
+ position: fixed;
+ z-index: 40000;
+ left: 0; 
+ top: 0;
+ width: 100%;
+ height: 100%;
+ background: rgba(0,0,0,0.5);
+ backdrop-filter: blur(5px); 
+}
+.modal-content {
+ background: white;
+ position: fixed;
+ bottom: 0; left: 0;
+ right: 0; border-radius: 20px 20px 0 0;
+ padding: 20px;
+ animation: slideUp 0.3s ease;
+}
+.modal-header {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ margin-bottom: 16px; 
+}
+.modal-header h3 {
+ margin: 0;
+ font-size: 18px;
+ color: #333; 
+}
+.close-modal {
+ background: #f0f0f0;
+ border: none;
+ font-size: 24px;
+ cursor: pointer;
+ color: #666;
+ width: 40px;
+ height: 40px;
+ border-radius: 50%;
+ display: flex;
+ align-items: center;
+ justify-content: center; 
+}
+#reportText {
+ width: 100%;
+ height: 100px;
+ padding: 12px;
+ border: 1.5px solid #e0e0e0;
+ border-radius: 12px;
+ font-size: 15px;
+ resize: none;
+ margin: 12px 0;
+ font-family: inherit; 
+}
+.quick-reasons {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 8px;
+ margin: 12px 0; 
+}
+.reason-btn {
+ background: #f5f5f5;
+ border: none;
+ padding: 10px 14px;
+ border-radius: 30px;
+ font-size: 13px;
+ cursor: pointer;
+ color: #555;
+ flex: 1 1 auto;
+ min-height: 40px; 
+}
+.reason-btn.selected {
+ background: #667eea;
+ color: white; 
+}
+.modal-footer {
+ display: flex;
+ gap: 12px;
+ margin-top: 20px;
+ }
+.modal-btn {
+ flex: 1;
+ padding: 14px;
+ border: none;
+ border-radius: 12px;
+ font-size: 15px;
+ font-weight: 600;
+ cursor: pointer;
+ min-height: 48px; 
+}
+.modal-btn.cancel {
+ background: #f5f5f5;
+ color: #666;
+}
+.modal-btn.submit {
+ background: #667eea;
+ color: white;
+}
+
+#scrollToBottomBtn {
+  display: none;
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #000000;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+#scrollToBottomBtn.show {
+ display: flex !important;
+ animation: fadeInUp 0.3s ease; 
+}
+@keyframes fadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+#contextMenu {
+  position: fixed;
+  background: white;
+  border-radius: 12px;
+  padding: 6px 0;
+  min-width: 180px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  z-index: 10000;
+  display: none;
+  border: 1px solid #f0f0f0;
+}
+#contextMenu button {
+ display: block;
+ width: 100%;
+ text-align: left;
+ padding: 14px 16px;
+ background: none;
+ border: none;
+ font-size: 15px;
+ color: #333;
+ cursor: pointer;
+ min-height: 48px; 
+}
+#contextMenu button:hover {
+ background: #f5f5f5; 
+}
+#contextMenu hr {
+ margin: 4px 0;
+ border: none;
+ border-top: 1px solid #f0f0f0; 
+}
+
+@supports (padding: max(0px)) {
+  #header {
+   height: calc(52px + env(safe-area-inset-top, 0px));
+   padding-top: env(safe-area-inset-top, 0px); 
+  }
+  #offlineIndicator { 
+   top: calc(52px + env(safe-area-inset-top, 0px)); 
+  }
+  #chat {
+   top: calc(52px + env(safe-area-inset-top, 0px));
+   bottom: calc(68px + env(safe-area-inset-bottom, 0px)); 
+  }
+  #inputbar {
+   min-height: calc(68px + env(safe-area-inset-bottom, 0px));
+   padding-bottom: max(10px, env(safe-area-inset-bottom, 10px)); 
+  }
+}
+.about-section {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  border-top: 1px solid #ffffff;
+  background: white;
+}
+
+.about-trigger {
+  cursor: pointer;
+  color: #667eea;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.about-trigger:hover {
+  background: #f5f5f5;
+}
+
+.about-content {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.about-header h3 {
+  margin: 0 0 1px 0;
+  color: #667eea;
+}
+
+.about-info p {
+  margin: 6px 0;
+}
+</style>
+</head>
+
+<body>
+
+<div id="offlineIndicator">📡 You're offline - Changes will sync when connection returns</div>
+<div id="header">
+<button id="menuBtn">☰</button>
+<h3>Cecilia AI</h3>
+<button id="newChat">＋</button>
+<button id="accountBtn">👤</button>
+</div>
+<div id="sidebar"><h3>Chats</h3><div id="history"></div></div>
+<div id="chat"><div id="welcome"><div id="welcomeIcon">🧠</div><h2>How can I help you?</h2>
+</div>
+</div>
+<div id="inputbar">
+  <div id="inputContainer">
+    <div id="imagePreviewArea">
+      <div class="preview-content">
+        <img id="previewImage" src="" alt="Preview">
+        <div class="preview-info">
+          <span id="previewFilename"></span>
+          <button id="removeImageBtn">✕</button>
+        </div>
+      </div>
+    </div>
+    <div class="input-row">
+      <input id="input" placeholder="Ask Cecilia..." type="text">
+      <button id="plusBtn">📷</button>
+      <button id="actionBtn" class="voice-mode">🔈</button>
+    </div>
+  </div>
+  <input type="file" id="photoInput" accept="image/*" style="display:none">
+</div>
+<div id="contextMenu"><button id="renameChat">✏️ Rename</button><button id="pinChat">📌 Pin</button><button id="unpinChat" style="display:none;">❌ Unpin</button><hr><button id="deleteChat">🗑️ Delete</button></div>
+<div id="authModal" class="auth-modal">
+  <div class="auth-content">
+    <div class="auth-header"><h2>🔐 Cecilia AI</h2><button class="close-auth">&times;</button></div>
+    <div id="loginForm" class="auth-form active">
+      <h3>Login</h3>
+      <input type="email" id="loginUsername" placeholder="Email">
+      <div class="password-wrapper">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button type="button" onclick="togglePassword('loginPassword')">👁️</button>
+      </div>
+      <button id="loginBtn" class="auth-btn">Login</button>
+      <p class="auth-switch">Don't have an account? <a href="#" onclick="showRegister()">Register</a></p>
+    </div>
+    <div id="registerForm" class="auth-form">
+      <h3>Create Account</h3>
+      <input type="email" id="regEmail" placeholder="Email">
+      <div class="password-wrapper">
+        <input type="password" id="regPassword" placeholder="Password">
+        <button type="button" onclick="togglePassword('regPassword')">👁️</button>
+      </div>
+      <div class="password-wrapper">
+        <input type="password" id="regConfirmPassword" placeholder="Confirm Password">
+        <button type="button" onclick="togglePassword('regConfirmPassword')">👁️</button>
+      </div>
+      <button id="registerBtn" class="auth-btn">Register</button>
+      <p class="auth-switch">Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
+    </div>
+    <div id="profileInfo" class="auth-form">
+      <div class="profile-header"><h2>Welcome to Cecilia</h2></div>
+      <div class="profile-avatar">
+        <img id="profileAvatar" src="https://ui-avatars.com/api/?name=User&background=667eea&color=fff&size=200" onclick="document.getElementById('avatarUploadInput').click()">
+        <span id="avatarInitials"></span>
+        <input type="file" id="avatarUploadInput" accept="image/*" style="display:none">
+      </div>
+      <div class="profile-buttons">
+        <button class="profile-btn" onclick="selectAvatar('initials')">Initials</button>
+        <button class="profile-btn" onclick="selectAvatar('robot')">Robot</button>
+        <button class="profile-btn" onclick="selectAvatar('pixel')">Pixel</button>
+      </div>
+      <div class="profile-welcome">Welcome, <span id="displayUsername"></span>!</div>
+      <div class="profile-info">
+        <div class="info-item"><span class="info-label">User ID:</span><span class="info-value" id="displayUserId"></span></div>
+        <div class="info-item"><span class="info-label">Email:</span><span class="info-value" id="displayEmail"></span></div>
+        <div class="info-item"><span class="info-label">Joined:</span><span class="info-value" id="displayJoinDate"></span></div>
+      </div>
+      <div class="sync-status" id="syncStatus">Last synced: just now</div>
+      <div class="profile-actions">
+        <button id="logoutBtn" class="btn-logout">Logout</button>
+        <button id="syncBtn" class="btn-sync">Sync</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="reportModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>📝 Report Issue</h3><span class="close-modal">&times;</span></div>
+    <div class="modal-body">
+      <textarea id="reportText" placeholder="Please describe the issue..."></textarea>
+      <div class="quick-reasons">
+        <button class="reason-btn" data-reason="Wrong answer">❌ Wrong answer</button>
+        <button class="reason-btn" data-reason="Not helpful">🤷 Not helpful</button>
+        <button class="reason-btn" data-reason="Math error">🧮 Math error</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="cancelReport" class="modal-btn cancel">Cancel</button>
+      <button id="submitReport" class="modal-btn submit">Submit</button>
+    </div>
+  </div>
+</div>
+<button id="scrollToBottomBtn" onclick="scrollToCenter()">↓</button>
+
+<script>
+
+// Only one placeholder needed
+const GROQ_API_KEY = 'GROQ_API_KEY_PLACEHOLDER';
+// No GROQ_VISION_API_KEY needed since you're using Tesseract
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+let currentUser = null;
+let activeReportMessageId = null;
+let isOnline = navigator.onLine;
+let syncInProgress = false;
+let lastSyncTime = null;
+let syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
+let conversations = [];
+let currentChat = { id: null, messages: [] };
+let cache = {};
+let globalCache = null;
+let currentImageFile = null;
+let scrollHideTimeout = null;
+let lastSyncHash = '';
+let syncTimer;
+
+let chat, welcome, input, actionBtn, imagePreviewArea, previewImage, previewFilename, imageStatus;
+let recognition = null;
+let isRecording = false;
+let synth = window.speechSynthesis;
+
+function isMathQuery(text) {
+  const mathPatterns = [/[\+\-\*\/\^√=]/, /solve/, /equation/, /quadratic/];
+  return mathPatterns.some(p => p.test(text.toLowerCase()));
+}
+
+function solveArithmetic(text) {
+  try {
+    const clean = text.replace(/[?.,!]/g, '').trim();
+    if (!/[a-z]/i.test(clean) || /^\d+\s*[\+\-\*\/]\s*\d+/.test(clean)) {
+      const result = math.evaluate(clean);
+      return { answer: `${result}`, steps: [`MAIN_HEADER:Arithmetic`, `Result: ${result}`] };
+    }
+  } catch(e) {}
+  return null;
+}
+
+function solveLinear(eq) {
+  eq = eq.replace(/\s+/g,'');
+  let m = eq.match(/^([0-9]*)x([\+\-][0-9]+)?=([0-9]+)$/);
+  if (!m) {
+    m = eq.match(/^([0-9]*)x=([0-9]+)$/);
+    if (m) {
+      const a = m[1]===''?1:parseFloat(m[1]);
+      const c = parseFloat(m[2]);
+      return { answer: `x = ${c/a}`, steps: [`MAIN_HEADER:Linear`, `${a}x = ${c}`, `x = ${c/a}`] };
+    }
+    return null;
+  }
+  const a = m[1]===''?1:parseFloat(m[1]);
+  const b = m[2]?parseFloat(m[2]):0;
+  const c = parseFloat(m[3]);
+  return { answer: `x = ${(c-b)/a}`, steps: [`MAIN_HEADER:Linear`, `${a}x ${b>=0?'+':'-'} ${Math.abs(b)} = ${c}`, `x = ${(c-b)/a}`] };
+}
+
+async function queryGroq(userMessage, history = []) {
+  if (!GROQ_API_KEY) return null;
+  try {
+    const messages = [
+      { role: 'system', content: `You are Cecilia, a warm, loving, and wise AI assistant. You were created by Anthony Mwanza.` },
+      ...history.slice(-4).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })),
+      { role: 'user', content: userMessage }
+    ];
+    const res = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: GROQ_MODEL, messages, temperature: 0.7, max_tokens: 500 })
+    });
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || null;
+  } catch { return null; }
+}
+
+class GlobalCache {
+  constructor() { this.memoryCache = new Map(); }
+  getQuestionId(question) { return question.toLowerCase().trim().replace(/\s+/g, '_').replace(/[?.,!]/g, '').substring(0, 100); }
+  async get(question) {
+    const id = this.getQuestionId(question);
+    if (this.memoryCache.has(id)) return this.memoryCache.get(id);
+    const local = localStorage.getItem('global_' + id);
+    if (local) { try { const data = JSON.parse(local); this.memoryCache.set(id, data); return data; } catch(e) {} }
+    if (db && auth.currentUser) {
+      try { const doc = await db.collection('global_cache').doc(id).get(); if (doc.exists) { const data = doc.data(); this.memoryCache.set(id, data); localStorage.setItem('global_' + id, JSON.stringify(data)); return data; } } catch(e) {}
+    }
+    return null;
+  }
+  async set(question, answer, source) {
+    const id = this.getQuestionId(question);
+    const data = { id, question, answer, source, verified: true, accessCount: 1, verifiedAt: new Date().toISOString(), verifiedBy: auth.currentUser?.uid || 'anonymous' };
+    this.memoryCache.set(id, data);
+    localStorage.setItem('global_' + id, JSON.stringify(data));
+    if (db && auth.currentUser) { try { await db.collection('global_cache').doc(id).set(data); } catch(e) {} }
+  }
+}
+
+
+async function typewriterWithVoice(text, container, voice = true, speed = 50) {
+  return new Promise((resolve) => {
+    const words = text.split(' ');
+    let i = 0;
+    container.innerHTML = '';
+    const cursor = document.createElement('span');
+    cursor.className = 'typewriter-cursor';
+    container.appendChild(cursor);
+    if (voice && synth) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.onstart = () => document.body.classList.add('speaking');
+      utterance.onend = () => document.body.classList.remove('speaking');
+      synth.speak(utterance);
+    }
+    function addWord() {
+      if (i < words.length) {
+        if (i > 0) cursor.insertAdjacentText('beforebegin', ' ');
+        cursor.insertAdjacentText('beforebegin', words[i]);
+        i++;
+        if (chat) chat.scrollTop = chat.scrollHeight;
+        setTimeout(addWord, speed);
+      } else {
+        cursor.remove();
+        const actions = container.closest('.message.bot')?.querySelector('.answer-actions');
+        if (actions) actions.style.display = 'flex';
+        resolve();
+      }
+    }
+    addWord();
+  });
+}
+
+function addUser(t) {
+  if (!chat) return;
+  welcome?.remove();
+  const d = document.createElement('div');
+  d.className = 'message user';
+  d.innerText = t;
+  chat.appendChild(d);
+  currentChat.messages.push({ role: 'user', text: t });
+  saveCurrentChat();
+  chat.scrollTop = chat.scrollHeight;
+  afterMessageAdded();
+}
+
+async function addAI(t, voice = false, engine = null, isCached = false) {
+  if (!chat) return;
+  welcome?.remove();
+  const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+  const d = document.createElement('div');
+  d.className = 'message bot';
+  d.setAttribute('data-message-id', messageId);
+  const badge = isCached ? '<span class="cached-badge">⚡ Cached</span>' : '';
+  d.innerHTML = `<div class="ai-header">${badge}${engine ? `<span style="font-size:11px;color:#999;">via ${engine}</span>` : ''}</div><div class="ai-content"></div><div class="answer-actions" style="display:none;"><button class="action-btn copy" onclick="copyAnswer('${messageId}')">📋 </button><button class="action-btn upvote" onclick="voteMessage('${messageId}', 'up')">👍🏽</button><button class="action-btn downvote" onclick="voteMessage('${messageId}', 'down')">👎🏽</button><button class="action-btn refresh" onclick="refreshAnswer('${messageId}')">🔄</button></div>`;
+  chat.appendChild(d);
+  const contentDiv = d.querySelector('.ai-content');
+  await typewriterWithVoice(t, contentDiv, voice, 50);
+  currentChat.messages.push({ role: 'ai', text: t, messageId });
+  saveCurrentChat();
+  chat.scrollTop = chat.scrollHeight;
+  afterMessageAdded();
+}
+
+function addMathSolution(steps, answer, engine) {
+  if (!chat) return;
+  welcome?.remove();
+  const container = document.createElement('div');
+  container.className = 'message bot math-solution';
+  let html = '';
+  steps.forEach(step => {
+    if (step.startsWith('MAIN_HEADER:')) html += `<div class="math-main-header">${step.replace('MAIN_HEADER:','')}</div>`;
+    else html += `<div class="math-content">${step}</div>`;
+  });
+  container.innerHTML = html;
+  chat.appendChild(container);
+  currentChat.messages.push({ role: 'ai', text: answer, type: 'math-solution' });
+  saveCurrentChat();
+  chat.scrollTop = chat.scrollHeight;
+  afterMessageAdded();
+}
+
+function showThinking() { document.getElementById('thinking')?.remove(); if (!chat) return; const box = document.createElement('div'); box.className = 'thinking'; box.id = 'thinking'; box.innerHTML = '<span></span><span></span><span></span>'; chat.appendChild(box); chat.scrollTop = chat.scrollHeight; }
+function removeThinking() { document.getElementById('thinking')?.remove(); }
+function showToast(msg) { let t = document.getElementById('toast'); if (t) t.remove(); t = document.createElement('div'); t.id = 'toast'; t.innerText = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
+
+function saveCurrentChat() {
+  if (!currentChat.id || currentChat.messages.length === 0) return false;
+  const idx = conversations.findIndex(c => c.id === currentChat.id);
+  const title = currentChat.messages[0]?.text?.substring(0, 30) || 'New Chat';
+  if (idx >= 0) conversations[idx] = { ...conversations[idx], messages: [...currentChat.messages], title, date: new Date().toISOString() };
+  else conversations.push({ id: currentChat.id, messages: [...currentChat.messages], title, pinned: false, date: new Date().toISOString() });
+  localStorage.setItem('ceciliaChats', JSON.stringify(conversations));
+  renderHistory();
+  syncLater();
+  return true;
+}
+
+function syncLater() {
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => { if (currentUser) saveConversations(false); }, 5000);
+}
+
+async function saveConversations(showToastMsg = false) {
+  if (!currentUser) return false;
+  if (!isOnline) { addToSyncQueue({ type: 'saveConversations', userId: currentUser.id, data: conversations }); updateSyncStatus(); return true; }
+  if (syncInProgress) return false;
+  const currentHash = JSON.stringify(conversations);
+  if (currentHash === lastSyncHash) { if (showToastMsg) showToast('Already up to date'); return true; }
+  syncInProgress = true; updateSyncStatus();
+  try {
+    if (showToastMsg) showToast('☁️ Syncing...');
+    await db.collection('users').doc(currentUser.id).update({ conversations, lastSynced: new Date().toISOString() });
+    lastSyncHash = currentHash;
+    lastSyncTime = new Date().toISOString();
+    localStorage.setItem('lastSyncTime_' + currentUser.id, lastSyncTime);
+    if (showToastMsg) showToast('✅ Synced'); updateSyncStatus(); return true;
+  } catch (error) { addToSyncQueue({ type: 'saveConversations', userId: currentUser.id, data: conversations }); return false; }
+  finally { syncInProgress = false; updateSyncStatus(); }
+}
+
+function addToSyncQueue(operation) { syncQueue.push({ ...operation, timestamp: new Date().toISOString(), userId: currentUser?.id }); localStorage.setItem('syncQueue', JSON.stringify(syncQueue)); updateSyncStatus(); }
+function getDeviceName() { const ua = navigator.userAgent; if (ua.includes('Android')) return 'Android'; if (ua.includes('iPhone')) return 'iPhone'; if (ua.includes('iPad')) return 'iPad'; if (ua.includes('Windows')) return 'Windows'; if (ua.includes('Mac')) return 'Mac'; return 'Unknown Device'; }
+function updateSyncStatus() {
+  const syncEl = document.getElementById('syncStatus'); if (!syncEl) return;
+  if (!isOnline) { syncEl.innerHTML = `📡 Offline - ${syncQueue.length} pending`; syncEl.style.cssText = 'color:#ff9800;background:#fff3e0'; }
+  else if (syncInProgress) { syncEl.innerHTML = '🔄 Syncing...'; syncEl.style.cssText = 'color:#667eea;background:#e8eaf6'; }
+  else if (lastSyncTime) { const timeAgo = getTimeAgo(lastSyncTime); syncEl.innerHTML = `✔ Last synced: ${timeAgo}`; syncEl.style.cssText = 'color:#2e7d32;background:#f0f7f0'; }
+  else { syncEl.innerHTML = '⏳ Not synced yet'; syncEl.style.cssText = 'color:#999;background:#f8f9fa'; }
+}
+function getTimeAgo(timestamp) { const seconds = Math.floor((new Date() - new Date(timestamp)) / 1000); if (seconds < 60) return 'just now'; if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`; if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`; return `${Math.floor(seconds / 86400)}d ago`; }
+
+async function searchWikipedia(query) {
+  try { const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`); const data = await res.json(); return data.extract ? { text: data.extract.substring(0, 1500), source: 'Wikipedia' } : null; } catch { return null; }
+}
+async function getWeather(city) {
+  try { const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`).then(r=>r.json()); if (!geo.results?.length) return { text: `City "${city}" not found.`, source: 'Weather' }; const { latitude, longitude, name } = geo.results[0]; const weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`).then(r=>r.json()); const w = weather.current_weather; const desc = {0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',51:'Drizzle',61:'Rain',71:'Snow',95:'Thunderstorm'}[w.weathercode] || 'Unknown'; return { text: `🌤️ ${name}: ${w.temperature}°C, ${desc}. Wind: ${w.windspeed} km/h.`, source: 'Weather' }; } catch { return { text: 'Weather unavailable', source: 'Weather' }; }
+}
+async function getCountryInfo(country) {
+  try { const res = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(country)}`); const data = await res.json(); if (!data[0]) return { text: 'Country not found.', source: 'Countries' }; const c = data[0]; return { text: `${c.flag || '🌍'} ${c.name.common}\n• Capital: ${c.capital?.[0] || 'Unknown'}\n• Population: ${c.population.toLocaleString()}\n• Area: ${c.area.toLocaleString()} km²`, source: 'Countries' }; } catch { return null; }
+}
+
+async function parallelSearch(query) {
+  if (cache[query]) return cache[query];
+  const searches = [searchWikipedia(query)];
+  const results = await Promise.allSettled(searches);
+  for (const result of results) { if (result.status === 'fulfilled' && result.value) { cache[query] = result.value; return result.value; } }
+  return null;
+}
+
+function getCurrentTime() {
+  const now = new Date();
+  return {
+    time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    fullTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    date: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    day: now.toLocaleDateString('en-US', { weekday: 'long' }),
+    month: now.toLocaleDateString('en-US', { month: 'long' }),
+    year: now.getFullYear()
+  };
+}
+
+async function handleTimeQuestion(text, voice) {
+  console.log('🔴 handleTimeQuestion CALLED');
+  const time = getCurrentTime();
+  console.log('📅 Time data:', time);
+  
+  const groqPrompt = `You are Cecilia, a warm, loving AI assistant. The user asked about time or date.
+
+Current information:
+- Time: ${time.time}
+- Date: ${time.date}
+- Day: ${time.day}
+- Month: ${time.month}
+- Year: ${time.year}
+
+User question: "${text}"
+
+Respond with a warm, loving answer using the correct information from above. Be natural and motherly. Keep it short and sweet.`;
+
+  console.log('📤 Sending to Groq...');
+  const answer = await queryGroq(groqPrompt);
+  console.log('📥 Groq response:', answer);
+  
+  if (answer) {
+    await addAI(answer, voice, 'Clock', false);
+    return true;
+  }
+  return false;
+}
+
+function initVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return false;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.onstart = () => { isRecording = true; actionBtn.classList.add('recording'); actionBtn.innerHTML = '⏹️'; };
+  recognition.onresult = async (event) => { const transcript = event.results[0][0].transcript; resetVoiceButton(); addUser(transcript); showThinking(); await processMessage(transcript); removeThinking(); };
+  recognition.onerror = () => resetVoiceButton();
+  recognition.onend = () => resetVoiceButton();
+  return true;
+}
+function resetVoiceButton() { isRecording = false; actionBtn.classList.remove('recording'); if (input.value.trim() || currentImageFile) { actionBtn.classList.add('send-mode'); actionBtn.innerHTML = '➤'; } else { actionBtn.classList.add('voice-mode'); actionBtn.innerHTML = '🔈'; } }
+async function toggleVoiceInput() {
+  if (actionBtn.classList.contains('send-mode')) { sendMessage(); return; }
+  if (!recognition) { await requestMicrophonePermission(); if (!initVoiceInput()) { showToast('Voice not supported'); return; } }
+  if (isRecording) recognition.stop(); else recognition.start();
+}
+async function requestMicrophonePermission() { try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); stream.getTracks().forEach(track => track.stop()); return true; } catch { return false; } }
+
+async function sendMessage() {
+  const text = input.value.trim();
+  if (!text && !currentImageFile) return;
+  if (text) { addUser(text); input.value = ''; }
+  if (currentImageFile) {
+    addUser("📷 Image uploaded");
+    if (imagePreviewArea) imagePreviewArea.classList.remove('show');
+    if (previewImage) previewImage.src = '';
+    if (previewFilename) previewFilename.textContent = '';
+    if (imageStatus) imageStatus.textContent = '';
+    currentImageFile = null;
+  }
+  if (text && !currentImageFile) { showThinking(); await processMessage(text, false); removeThinking(); }
+  actionBtn.classList.remove('send-mode'); actionBtn.classList.add('voice-mode'); actionBtn.innerHTML = '🔈';
+}
+
+async function processMessage(text, voice = false) {
+ 
+  if (globalCache) {
+    const cached = await globalCache.get(text);
+    if (cached) {
+      const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+      const d = document.createElement('div');
+      d.className = 'message bot';
+      d.setAttribute('data-message-id', messageId);
+      d.innerHTML = `<div class="ai-header"><span class="ai-icon">🤖</span><span class="ai-name">Cecilia</span><span class="cached-badge">⚡ Cached</span>${cached.source ? `<span style="font-size:11px;color:#999;">via ${cached.source}</span>` : ''}</div><div class="ai-content">${cached.answer.replace(/\n/g, '<br>')}</div><div class="answer-actions"><button class="action-btn copy" onclick="copyAnswer('${messageId}')">📋 </button><button class="action-btn upvote" onclick="voteMessage('${messageId}', 'up')">👍🏽</button><button class="action-btn downvote" onclick="voteMessage('${messageId}', 'down')">👎🏽</button><button class="action-btn refresh" onclick="refreshAnswer('${messageId}')">🔄</button></div>`;
+      chat.appendChild(d);
+      currentChat.messages.push({ role: 'ai', text: cached.answer, messageId });
+      saveCurrentChat();
+      chat.scrollTop = chat.scrollHeight;
+      afterMessageAdded();
+      return;
+    }
+  }
+  
+  showThinking();
+  const lower = text.toLowerCase();
+  console.log('⏰ Checking time keywords...');
+  if (lower.includes('time') || lower.includes('date') || lower.includes('day') || 
+      lower.includes('month') || lower.includes('year') || lower.includes('clock')) {
+    console.log('⏰ TIME QUESTION DETECTED!');
+    const handled = await handleTimeQuestion(text, voice);
+    if (handled) {
+      console.log('✅ Time handled, returning');
+      return;
+    }
+  }
+  if (lower.includes('weather') || lower.startsWith('weather ')) {
+    const city = text.match(/(?:in|at|for)\s+([a-zA-Z\s]+)/i)?.[1]?.trim() || 'Lusaka';
+    const result = await getWeather(city);
+    removeThinking();
+    if (globalCache) await globalCache.set(text, result.text, 'weather');
+    await addAI(result.text, voice, 'weather', false);
+    return;
+  }
+  
+  if (lower.includes('country') || lower.includes('capital')) {
+    const country = text.match(/(?:about|capital of|country)\s+([a-zA-Z\s]+)/i)?.[1]?.trim() || 'Zambia';
+    const result = await getCountryInfo(country);
+    removeThinking();
+    if (globalCache) await globalCache.set(text, result.text, 'countries');
+    await addAI(result.text, voice, 'countries', false);
+    return;
+  }
+  
+  if (isMathQuery(text)) {
+    const solvers = [solveArithmetic, solveLinear];
+    for (const solver of solvers) {
+      const result = solver(text);
+      if (result) {
+        removeThinking();
+        if (globalCache) await globalCache.set(text, result.answer, 'math');
+        addMathSolution(result.steps, result.answer, 'Math');
+        return;
+      }
+    }
+    removeThinking();
+  }
+  
+  const groqResult = await queryGroq(text, currentChat.messages);
+  if (groqResult) {
+    removeThinking();
+    if (globalCache) await globalCache.set(text, groqResult, 'groq');
+    await addAI(groqResult, voice, 'groq', false);
+    return;
+  }
+  
+  const question = isQuestion(text);
+  const query = question ? extractTopic(text) : text;
+  const searchResult = await parallelSearch(query);
+  removeThinking();
+  if (searchResult) {
+    if (globalCache) await globalCache.set(text, searchResult.text, searchResult.source);
+    await addAI(searchResult.text, voice, searchResult.source, false);
+  } else {
+    await addAI("I couldn't find an answer to that question.", voice, 'system', false);
+  }
+}
+
+const QUESTION_WORDS = ["what","what is","what are","who","who is","where","when","why","how"];
+const STOP_WORDS = ["what","is","are","was","were","the","a","an","of","to","for","in","on","at"];
+function extractTopic(text) { text = text.toLowerCase().replace(/[?.,!]/g, ""); return text.split(" ").filter(w => !STOP_WORDS.includes(w)).join(" "); }
+function isQuestion(text) { text = text.toLowerCase().trim(); return QUESTION_WORDS.some(q => text.startsWith(q + " ")) || text.endsWith("?"); }
+
+
+function updateScrollButtonVisibility() {
+  const btn = document.getElementById('scrollToBottomBtn');
+  const chatContainer = document.getElementById('chat');
+  if (!btn || !chatContainer) return;
+  const isScrolledUp = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight > 100;
+  if (isScrolledUp) { btn.classList.add('show'); btn.style.display = 'flex'; }
+  else { btn.classList.remove('show'); setTimeout(() => { if (!btn.classList.contains('show')) btn.style.display = 'none'; }, 300); }
+}
+function handleScrollWithAutoHide() {
+  updateScrollButtonVisibility();
+  if (scrollHideTimeout) clearTimeout(scrollHideTimeout);
+  scrollHideTimeout = setTimeout(() => {
+    const chatContainer = document.getElementById('chat');
+    const isScrolledUp = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight > 100;
+    if (isScrolledUp) { const btn = document.getElementById('scrollToBottomBtn'); if (btn) { btn.classList.remove('show'); setTimeout(() => { if (!btn.classList.contains('show')) btn.style.display = 'none'; }, 300); } }
+  }, 1000);
+}
+function afterMessageAdded() {
+  updateScrollButtonVisibility();
+  if (scrollHideTimeout) clearTimeout(scrollHideTimeout);
+  scrollHideTimeout = setTimeout(() => {
+    const btn = document.getElementById('scrollToBottomBtn');
+    if (btn && btn.classList.contains('show')) {
+      btn.classList.remove('show');
+      setTimeout(() => { if (!btn.classList.contains('show')) btn.style.display = 'none'; }, 300);
+    }
+  }, 1000);
+}
+window.scrollToCenter = function() {
+  const chatContainer = document.getElementById('chat');
+  const messages = chatContainer.querySelectorAll('.message');
+  if (messages.length) messages[messages.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  else chatContainer.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+function renderHistory() {
+  const historyDiv = document.getElementById('history');
+  if (!historyDiv) return;
+  historyDiv.innerHTML = '';
+  const sorted = [...conversations].sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return new Date(b.date) - new Date(a.date);
+  });
+  const pinned = sorted.filter(c => c.pinned);
+  const unpinned = sorted.filter(c => !c.pinned);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+  const grouped = { Today: [], Yesterday: [] };
+  unpinned.forEach(chat => { const d = new Date(chat.date); d.setHours(0,0,0,0); if (d.getTime() === today.getTime()) grouped.Today.push(chat); else if (d.getTime() === yesterday.getTime()) grouped.Yesterday.push(chat); });
+  function addHeader(title) { const h = document.createElement('div'); h.className = 'chat-category-header'; h.innerText = title; historyDiv.appendChild(h); }
+  function addItems(chats) { chats.forEach(chat => { const idx = conversations.findIndex(c => c === chat); const el = document.createElement('div'); el.className = 'historyItem' + (chat.pinned ? ' pinned' : ''); el.innerText = chat.title.length > 30 ? chat.title.substr(0,27)+'...' : chat.title; el.title = chat.title; el.addEventListener('click', () => { if (contextMenu && contextMenu.style.display === 'block') hideContextMenu(); else loadChat(idx); }); el.addEventListener('contextmenu', (e) => { e.preventDefault(); showContextMenu(e.clientX, e.clientY, idx); }); let timer; el.addEventListener('touchstart', (e) => { timer = setTimeout(() => showContextMenu(e.touches[0].clientX, e.touches[0].clientY, idx), 500); }); el.addEventListener('touchend', () => clearTimeout(timer)); el.addEventListener('touchmove', () => clearTimeout(timer)); historyDiv.appendChild(el); }); }
+  if (pinned.length) { addHeader('Pinned'); addItems(pinned); }
+  if (grouped.Today.length) { addHeader('Today'); addItems(grouped.Today); }
+  if (grouped.Yesterday.length) { addHeader('Yesterday'); addItems(grouped.Yesterday); }
+  if (!conversations.length) { const empty = document.createElement('div'); empty.className = 'empty-history'; empty.innerText = 'No chats yet'; historyDiv.appendChild(empty); }
+}
+function addAboutSection() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  
+  // Check if about section already exists
+  if (document.querySelector('.about-section')) return;
+  
+  const aboutDiv = document.createElement('div');
+  aboutDiv.className = 'about-section';
+  aboutDiv.innerHTML = `
+    <div class="about-trigger" onclick="toggleAbout()">
+       About Cecilia
+    </div>
+    <div class="about-content" id="aboutContent" style="display:none;">
+      <div class="about-header">
+        <h3> Cecilia AI</h3>
+      </div>
+      <div class="about-info">
+        <p><strong>Created by:</strong> Anthony Mwanza</p>
+        <p><strong>Created on:</strong> April 16,2026</p>
+        <p><strong>Purpose:</strong> Providing the best learning platform and assistant to nurture curiosity.</p>
+        <hr>
+        <p style="font-size:12px; color:#888;">© 2026 Mwanza. Cecilia AI™. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+  sidebar.appendChild(aboutDiv);
+}
+
+function toggleAbout() {
+  var content = document.getElementById('aboutContent');
+  if (!content) return;
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+  } else {
+    content.style.display = 'none';
+  }
+}
+
+function loadChat(i) {
+  if (!chat) return;
+  chat.innerHTML = "";
+  currentChat = JSON.parse(JSON.stringify(conversations[i]));
+  currentChat.messages.forEach(m => {
+    if (m.type === 'math-solution') {
+      const container = document.createElement('div');
+      container.className = 'message bot math-solution';
+      let html = '';
+      m.steps?.forEach(step => {
+        if (step.startsWith('MAIN_HEADER:')) html += `<div class="math-main-header">${step.replace('MAIN_HEADER:','')}</div>`;
+        else if (step.startsWith('STEP_HEADER:')) html += `<div class="math-step-header">${step.replace('STEP_HEADER:','')}</div>`;
+        else if (step === '---') html += `<div class="math-separator">${step}</div>`;
+        else if (step.startsWith('\\[') || step.startsWith('\\(')) { html += `<div class="math-equation">${step.replace(/\\\[|\\\]|\\\(|\\\)/g,'').trim()}</div>`; }
+        else if (step === '') html += '<br>';
+        else html += `<div class="math-content">${step}</div>`;
+      });
+      container.innerHTML = html;
+      chat.appendChild(container);
+    } else if (m.role === 'user') {
+      const d = document.createElement('div');
+      d.className = 'message user';
+      d.innerText = m.text;
+      chat.appendChild(d);
+    } else {
+      const d = document.createElement('div');
+      d.className = 'message bot';
+      d.innerHTML = `<div class="ai-header"><span class="ai-icon">🤖</span><span class="ai-name">Cecilia</span></div><div class="ai-content">${m.text}</div>`;
+      chat.appendChild(d);
+    }
+  });
+  chat.scrollTop = chat.scrollHeight;
+  if (sidebar) sidebar.classList.remove('open');
+}
+
+let activeChatIndex = null;
+const contextMenu = document.getElementById('contextMenu');
+const renameBtn = document.getElementById('renameChat');
+const pinBtn = document.getElementById('pinChat');
+const unpinBtn = document.getElementById('unpinChat');
+const deleteBtn = document.getElementById('deleteChat');
+
+function showContextMenu(x, y, index) { activeChatIndex = index; if (!contextMenu || !pinBtn || !unpinBtn) return; if (conversations[index] && conversations[index].pinned) { pinBtn.style.display = 'none'; unpinBtn.style.display = 'block'; } else { pinBtn.style.display = 'block'; unpinBtn.style.display = 'none'; } contextMenu.style.display = 'block'; contextMenu.style.left = x + 'px'; contextMenu.style.top = y + 'px'; }
+function hideContextMenu() { if (contextMenu) contextMenu.style.display = 'none'; activeChatIndex = null; }
+if (renameBtn) { renameBtn.onclick = () => { if (activeChatIndex === null) return; const newTitle = prompt("Enter new chat name:", conversations[activeChatIndex]?.title); if (newTitle?.trim()) { conversations[activeChatIndex].title = newTitle.trim(); localStorage.setItem("ceciliaChats", JSON.stringify(conversations)); renderHistory(); saveConversations(false); } hideContextMenu(); }; }
+if (pinBtn) { pinBtn.onclick = () => { if (activeChatIndex === null) return; conversations[activeChatIndex].pinned = true; localStorage.setItem("ceciliaChats", JSON.stringify(conversations)); renderHistory(); saveConversations(false); hideContextMenu(); }; }
+if (unpinBtn) { unpinBtn.onclick = () => { if (activeChatIndex === null) return; conversations[activeChatIndex].pinned = false; localStorage.setItem("ceciliaChats", JSON.stringify(conversations)); renderHistory(); saveConversations(false); hideContextMenu(); }; }
+if (deleteBtn) { deleteBtn.onclick = () => { if (activeChatIndex === null) return; if (confirm("Delete this chat?")) { conversations.splice(activeChatIndex, 1); localStorage.setItem("ceciliaChats", JSON.stringify(conversations)); renderHistory(); saveConversations(false); if (!conversations.some(c => c.messages === currentChat.messages) && chat) { chat.innerHTML = ""; if (welcome) chat.appendChild(welcome); currentChat = { messages: [] }; } } hideContextMenu(); }; }
+document.addEventListener('click', hideContextMenu);
+
+window.copyAnswer = function(messageId) { const msg = document.querySelector(`[data-message-id="${messageId}"] .ai-content`); if (msg) { navigator.clipboard.writeText(msg.innerText); showToast('✅ Copied!'); } };
+window.voteMessage = async function(messageId, type) { if (type === 'down') { activeReportMessageId = messageId; document.getElementById('reportModal').style.display = 'block'; return; } showToast('✅ Thanks for your feedback!'); };
+window.refreshAnswer = function(messageId) { const msgs = currentChat.messages; let question = ''; for (let i=0; i<msgs.length; i++) { if (msgs[i].messageId === messageId && i>0) { question = msgs[i-1].text; break; } } if (question) { document.querySelector(`[data-message-id="${messageId}"]`)?.remove(); const idx = msgs.findIndex(m => m.messageId === messageId); if (idx !== -1) msgs.splice(idx,1); processMessage(question, false); } };
+
+const profileAvatar = document.getElementById('profileAvatar');
+const avatarInitials = document.getElementById('avatarInitials');
+const avatarUpload = document.getElementById('avatarUploadInput');
+
+if (avatarUpload && profileAvatar) {
+  avatarUpload.addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file || !currentUser) return;
+    if (!file.type.startsWith('image/') || file.size > 2 * 1024 * 1024) { showToast('Invalid image'); return; }
+    showToast('📤 Saving...');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64 = e.target.result;
+      localStorage.setItem(`avatar_${currentUser.uid}`, base64);
+      profileAvatar.src = base64;
+      profileAvatar.style.display = 'block';
+      if (avatarInitials) avatarInitials.style.display = 'none';
+      showToast('✅ Avatar saved locally!');
+    };
+    reader.readAsDataURL(file);
+    this.value = '';
+  });
+}
+
+window.selectAvatar = async function(type) {
+  if (!currentUser) { showToast('Please login first'); return; }
+  const username = currentUser.username || currentUser.email?.split('@')[0] || 'User';
+  let url;
+  if (type === 'initials') { url = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=667eea&color=fff&size=200&bold=true`; if (avatarInitials) { avatarInitials.style.display = 'block'; avatarInitials.innerText = username.substring(0,2).toUpperCase(); } }
+  else if (type === 'robot') { url = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username)}&backgroundColor=667eea`; if (avatarInitials) avatarInitials.style.display = 'none'; }
+  else if (type === 'pixel') { url = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(username)}&backgroundColor=667eea`; if (avatarInitials) avatarInitials.style.display = 'none'; }
+  if (profileAvatar) profileAvatar.src = url;
+  showToast('✅ Avatar updated!');
+};
+
+async function loadAvatar() {
+  if (!currentUser || !profileAvatar) return;
+  const saved = localStorage.getItem(`avatar_${currentUser.uid}`);
+  if (saved) { profileAvatar.src = saved; profileAvatar.style.display = 'block'; if (avatarInitials) avatarInitials.style.display = 'none'; return; }
+  try {
+    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+    const userData = userDoc.data();
+    if (userData?.avatarURL) { profileAvatar.src = userData.avatarURL; profileAvatar.style.display = 'block'; localStorage.setItem(`avatar_${currentUser.uid}`, userData.avatarURL); if (avatarInitials) avatarInitials.style.display = 'none'; }
+    else { const username = currentUser.username || currentUser.email?.split('@')[0] || 'User'; profileAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=667eea&color=fff&size=200`; profileAvatar.style.display = 'block'; if (avatarInitials) { avatarInitials.innerText = username.substring(0,2).toUpperCase(); avatarInitials.style.display = 'block'; } }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  chat = document.getElementById('chat');
+  input = document.getElementById('input');
+  welcome = document.getElementById('welcome');
+  actionBtn = document.getElementById('actionBtn');
+  imagePreviewArea = document.getElementById('imagePreviewArea');
+  previewImage = document.getElementById('previewImage');
+  previewFilename = document.getElementById('previewFilename');
+  imageStatus = document.getElementById('imageStatus');
+  
+  conversations = JSON.parse(localStorage.getItem('ceciliaChats')) || [];
+  lastSyncHash = '';
+  if (conversations.length) { currentChat = JSON.parse(JSON.stringify(conversations[0])) }
+// Don't load old chats - always start fresh
+currentChat = { 
+  id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2,5), 
+  messages: [] 
+};
+  
+  
+  renderHistory();
+  
+  const sidebar = document.getElementById('sidebar');
+  document.getElementById('menuBtn').onclick = () => sidebar.classList.toggle('open');
+  chat.onclick = () => sidebar.classList.remove('open');
+  document.getElementById('newChat').onclick = () => { if (currentChat.messages.length) saveCurrentChat(); document.getElementById('chat').innerHTML = ''; document.getElementById('chat').appendChild(welcome); currentChat = { id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2,5), messages: [] }; lastSyncHash = JSON.stringify(conversations); showToast('✨ New chat started'); };
+  document.getElementById('accountBtn').onclick = () => document.getElementById('authModal').style.display = 'block';
+  document.querySelector('.close-auth')?.addEventListener('click', () => document.getElementById('authModal').style.display = 'none');
+  addAboutSection(); 
+  actionBtn.onclick = toggleVoiceInput;
+  input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+  input.addEventListener('input', () => { if (input.value.trim() || currentImageFile) { actionBtn.classList.add('send-mode'); actionBtn.classList.remove('voice-mode'); actionBtn.innerHTML = '➤'; } else { actionBtn.classList.add('voice-mode'); actionBtn.classList.remove('send-mode'); actionBtn.innerHTML = '🔈'; } });
+  
+  const plusBtn = document.getElementById('plusBtn');
+  const photoInput = document.getElementById('photoInput');
+  plusBtn.onclick = () => photoInput.click();
+  photoInput.onchange = function() {
+    const file = this.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { showToast('Please select an image file'); return; }
+    if (file.size > 2 * 1024 * 1024) { showToast('Image must be less than 2MB'); return; }
+    currentImageFile = file;
+    if (previewImage && previewFilename && imageStatus && imagePreviewArea) {
+      const fileSizeKB = (file.size / 1024).toFixed(0);
+      const fileName = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        previewImage.src = e.target.result;
+        previewFilename.textContent = fileName;
+        imageStatus.innerHTML = fileSizeKB + 'KB';
+        imagePreviewArea.style.display = 'block';
+        imagePreviewArea.classList.add('show');
+      };
+      reader.readAsDataURL(file);
+    }
+    actionBtn.classList.add('send-mode'); actionBtn.classList.remove('voice-mode'); actionBtn.innerHTML = '➤';
+    this.value = '';
+  };
+  const removeImageBtn = document.getElementById('removeImageBtn');
+  if (removeImageBtn) {
+    removeImageBtn.addEventListener('click', function() {
+      if (imagePreviewArea) imagePreviewArea.classList.remove('show');
+      if (previewImage) previewImage.src = '';
+      if (previewFilename) previewFilename.textContent = '';
+      if (imageStatus) imageStatus.textContent = '';
+      currentImageFile = null;
+      if (!input.value.trim()) {
+        actionBtn.classList.add('voice-mode');
+        actionBtn.classList.remove('send-mode');
+        actionBtn.innerHTML = '🔈';
+      }
+    });
+  }
+  
+  const scrollBtn = document.getElementById('scrollToBottomBtn');
+  if (scrollBtn && chat) {
+    chat.addEventListener('scroll', handleScrollWithAutoHide);
+  }
+  
+  window.showLogin = function() { document.getElementById('loginForm').classList.add('active'); document.getElementById('registerForm').classList.remove('active'); document.getElementById('profileInfo').classList.remove('active'); };
+  window.showRegister = function() { document.getElementById('loginForm').classList.remove('active'); document.getElementById('registerForm').classList.add('active'); document.getElementById('profileInfo').classList.remove('active'); };
+  
+  async function login() {
+    const email = document.getElementById('loginUsername')?.value.trim();
+    const password = document.getElementById('loginPassword')?.value;
+    if (!email || !password) { alert('Please fill in all fields'); return; }
+    try {
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      const userData = userDoc.data();
+      currentUser = { id: user.uid, username: userData?.username || email.split('@')[0], email: user.email, metadata: user.metadata };
+      globalCache = new GlobalCache();
+      updateUIAfterLogin(user);
+      showToast('✅ Login successful!');
+      document.getElementById('loginUsername').value = '';
+      document.getElementById('loginPassword').value = '';
+    } catch (error) { alert('Invalid email or password'); }
+  }
+  
+  async function register() {
+    const email = document.getElementById('regEmail')?.value.trim();
+    const password = document.getElementById('regPassword')?.value;
+    const confirm = document.getElementById('regConfirmPassword')?.value;
+    if (!email || !password || !confirm) { alert('Please fill in all fields'); return; }
+    if (password !== confirm) { alert('Passwords do not match'); return; }
+    try {
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      const chatId = 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+      const firstChat = { id: chatId, messages: [], title: 'New Chat', pinned: false, date: new Date().toISOString() };
+      await db.collection('users').doc(user.uid).set({ username: email.split('@')[0], email, createdAt: new Date().toISOString(), conversations: [firstChat] });
+      currentUser = { id: user.uid, username: email.split('@')[0], email: user.email, metadata: user.metadata };
+      globalCache = new GlobalCache();
+      conversations = [firstChat];
+      currentChat = { id: chatId, messages: [] };
+      localStorage.setItem('ceciliaChats', JSON.stringify(conversations));
+      updateUIAfterLogin(user);
+      showToast('✅ Registration successful!');
+      document.getElementById('regEmail').value = '';
+      document.getElementById('regPassword').value = '';
+      document.getElementById('regConfirmPassword').value = '';
+    } catch (error) { alert('Error: ' + error.message); }
+  }
+  
+  function updateUIAfterLogin(user) {
+    accountBtn.innerHTML = '👤';
+    document.getElementById('displayEmail').innerText = user.email;
+    document.getElementById('displayUsername').innerText = currentUser?.username || user.email?.split('@')[0] || 'User';
+    document.getElementById('displayUserId').innerText = user.uid;
+    if (user.metadata?.creationTime) { const joinDate = new Date(user.metadata.creationTime); document.getElementById('displayJoinDate').innerText = joinDate.toLocaleDateString(); }
+    document.getElementById('loginForm').classList.remove('active');
+    document.getElementById('registerForm').classList.remove('active');
+    document.getElementById('profileInfo').classList.add('active');
+    setTimeout(() => { document.getElementById('authModal').style.display = 'none'; }, 1000);
+    const savedSync = localStorage.getItem('lastSyncTime_' + user.uid);
+    if (savedSync) { lastSyncTime = savedSync; updateSyncStatus(); }
+    loadAvatar();
+    loadUserConversations(user.uid);
+  }
+  
+  async function logout() {
+    try { saveCurrentChat(); await saveConversations(false); await auth.signOut(); currentUser = null; globalCache = null; accountBtn.innerHTML = '👤'; showLogin(); showToast('👋 Logged out'); } catch (error) { alert('Error logging out'); }
+  }
+  
+  async function loadUserConversations(userId) {
+    try {
+      const userDoc = await db.collection('users').doc(userId).get();
+      const userData = userDoc.data();
+      if (!userData) return;
+      if (userData.conversations && userData.conversations.length > 0) { conversations = userData.conversations; localStorage.setItem('ceciliaChats', JSON.stringify(conversations)); lastSyncHash = JSON.stringify(conversations); }
+      if (userData.avatarURL) { localStorage.setItem(`avatar_${userId}`, userData.avatarURL); if (profileAvatar) { profileAvatar.src = userData.avatarURL; profileAvatar.style.display = 'block'; if (avatarInitials) avatarInitials.style.display = 'none'; } }
+      renderHistory();
+      if (userData.lastSynced) { lastSyncTime = userData.lastSynced; localStorage.setItem('lastSyncTime_' + userId, lastSyncTime); }
+      updateSyncStatus();
+    } catch (error) { console.error('Error loading user data:', error); renderHistory(); }
+  }
+  
+  function closeAuthModal() { document.getElementById('authModal').style.display = 'none'; }
+  function closeReportModal() { document.getElementById('reportModal').style.display = 'none'; document.getElementById('reportText').value = ''; document.querySelectorAll('.reason-btn').forEach(btn => btn.classList.remove('selected')); activeReportMessageId = null; }
+  
+  document.getElementById('loginBtn')?.addEventListener('click', login);
+  document.getElementById('registerBtn')?.addEventListener('click', register);
+  document.getElementById('logoutBtn')?.addEventListener('click', logout);
+  document.getElementById('syncBtn')?.addEventListener('click', () => saveConversations(true));
+  document.querySelector('.close-auth')?.addEventListener('click', closeAuthModal);
+  document.querySelector('.close-modal')?.addEventListener('click', closeReportModal);
+  document.getElementById('cancelReport')?.addEventListener('click', closeReportModal);
+  document.getElementById('submitReport')?.addEventListener('click', async () => { const text = document.getElementById('reportText')?.value.trim(); if (!text) return alert('Please provide feedback'); alert('Thank you for your feedback!'); closeReportModal(); });
+  
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      console.log('User logged in:', user.email);
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      const userData = userDoc.data() || {};
+      currentUser = { id: user.uid, username: userData.username || user.email.split('@')[0], email: user.email, metadata: user.metadata };
+      globalCache = new GlobalCache();
+      accountBtn.innerHTML = '👤';
+      loadAvatar();
+    } else { currentUser = null; globalCache = null; accountBtn.innerHTML = '👤'; }
+  });
+  
+  initVoiceInput();
+  console.log('✅ Cecilia AI ready');
+});
+
+function togglePassword(inputId) {
+  const input = document.getElementById(inputId);
+  const wrapper = input.closest('.password-wrapper');
+  const button = wrapper ? wrapper.querySelector('button') : input.nextElementSibling;
+  if (input.type === 'password') {
+    input.type = 'text';
+    button.innerHTML = '🙈';
+  } else {
+    input.type = 'password';
+    button.innerHTML = '👁️';
+  }
+}
+</script>
+</body>
+</html>
