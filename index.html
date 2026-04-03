@@ -2481,7 +2481,7 @@ currentChat = {
   const file = this.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) { showToast('Please select an image file'); return; }
-  if (file.size > 4 * 1024 * 1024) { showToast('Image must be less than 4MB'); return; }
+  if (file.size > 3 * 1024 * 1024) { showToast('Image must be less than 3MB'); return; }
   
   currentImageFile = file;
   
