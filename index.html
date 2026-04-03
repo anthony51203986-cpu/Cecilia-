@@ -4,12 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Cecilia AI</title>
-
-<!-- Load Math.js, Tesseract -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23667eea'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle' fill='white' font-weight='bold'%3EC%3C/text%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/mathjs@11/lib/browser/math.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -248,9 +244,10 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 2px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
 }
+
 .ai-icon {
   font-size: 18px;
   background: white;
@@ -262,18 +259,55 @@ body {
   justify-content: center;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
-.ai-name { 
- font-weight: 600;
- color: #667eea;
- font-size: 15px; 
+
+.ai-name {
+  font-weight: 600;
+  color: #667eea;
+  font-size: 15px;
 }
+
 .ai-content {
- color: #333; 
- font-size: 15px;
- line-height: 1.5;
- padding-left: 0px;
- white-space: pre-wrap;
- }
+  color: #333;
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  font-weight: 400;
+}
+
+.ai-content strong {
+  font-weight: 700;
+  color: #667eea;
+}
+
+.ai-content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 20px 0 12px 0;
+  border-bottom: 2px solid #eaeef2;
+  padding-bottom: 4px;
+}
+
+.ai-content ul, 
+.ai-content ol {
+  margin: 12px 0 12px 24px;
+  padding-left: 0;
+}
+
+.ai-content li {
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.ai-content hr {
+  margin: 20px 0;
+  border: none;
+  border-top: 1px solid #eaeef2;
+}
+
+.ai-content p {
+  margin: 12px 0;
+}
 
 .cached-badge {
   background: #2196f3;
@@ -283,8 +317,6 @@ body {
   border-radius: 20px;
   margin-left: 8px;
 }
-
-
 @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
 
 .math-main-header {
@@ -332,7 +364,7 @@ body {
   display: flex;
   gap: 4px;
   padding: 12px 18px;
-  background: #f0f2f5;
+  background: transparent;
   border-radius: 24px;
   width: fit-content;
   margin-left: 0px;
@@ -836,14 +868,14 @@ margin-top: 20px;
   bottom: 100px;
   left: 50%;
   transform: translateX(-50%);
-  width: 56px;
-  height: 56px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background: #000000;
-  color: white;
+  background:white;
+  color: black;
   border: none;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  font-size: 28px;
+  font-size: 24px;
   cursor: pointer;
   z-index: 9999;
   align-items: center;
@@ -947,6 +979,56 @@ margin-top: 20px;
 
 .about-info p {
   margin: 6px 0;
+}
+/* Fix for remove image button alignment */
+.preview-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  gap: 8px;
+}
+
+#previewFilename {
+  flex: 1;
+  font-size: 12px;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#removeImageBtn {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;  /* This pushes it to the right */
+}
+
+#removeImageBtn:hover {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.preview-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#previewImage {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid #667eea;
 }
 </style>
 </head>
@@ -1057,12 +1139,97 @@ margin-top: 20px;
 <button id="scrollToBottomBtn" onclick="scrollToCenter()">↓</button>
 
 <script>
+class GlobalCache {
+  constructor() { 
+    this.memoryCache = new Map(); 
+    console.log("✅ GlobalCache initialized");
+  }
+  
+  getQuestionId(question) { 
+    return question.toLowerCase().trim().replace(/\s+/g, '_').replace(/[?.,!]/g, '').substring(0, 100); 
+  }
+  
+  async get(question) {
+    const id = this.getQuestionId(question);
+    
+    if (this.memoryCache.has(id)) {
+      console.log(`📦 Memory cache hit: ${question}`);
+      return this.memoryCache.get(id);
+    }
+    
+    const local = localStorage.getItem('global_' + id);
+    if (local) {
+      try {
+        const data = JSON.parse(local);
+        this.memoryCache.set(id, data);
+        console.log(`💾 localStorage cache hit: ${question}`);
+        return data;
+      } catch(e) {
+        console.log("Parse error:", e);
+      }
+    }    
+    
+    if (db && auth.currentUser) {
+      try {
+        const doc = await db.collection('global_cache').doc(id).get();
+        if (doc.exists) {
+          const data = doc.data();
+          console.log(`☁️ Firestore cache hit: ${question}`);
+          this.memoryCache.set(id, data);
+          localStorage.setItem('global_' + id, JSON.stringify(data));
+          return data;
+        }
+      } catch(e) {
+        console.log("Firestore error:", e);
+      }
+    }
+    
+    return null;
+  }
+  
+  async save(question, answer, source) {
+    const id = this.getQuestionId(question);
+    const data = { 
+      id: id,
+      question: question, 
+      answer: answer, 
+      source: source, 
+      verified: true, 
+      accessCount: 1, 
+      verifiedAt: new Date().toISOString(), 
+      verifiedBy: auth.currentUser?.uid || 'anonymous' 
+    };    
+  
+    this.memoryCache.set(id, data);
+     
+    localStorage.setItem('global_' + id, JSON.stringify(data));
+    console.log(`💾 Saved to localStorage: ${question}`);
+        
+    if (db) {
+      try {
+        await db.collection('global_cache').doc(id).set(data);
+        console.log(`☁️ Saved to Firestore: ${question}`);
+      } catch(e) {
+        console.log("Firestore save error:", e);
+      }
+    }
+    
+    return data;
+  }
+}
 
-// Only one placeholder needed
+let globalCache = new GlobalCache();
+const SCOUT_API_KEY = 'SCOUT_API_KEY_PLACEHOLDER'
 const GROQ_API_KEY = 'GROQ_API_KEY_PLACEHOLDER';
-// No GROQ_VISION_API_KEY needed since you're using Tesseract
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'llama-3.1-8b-instant';
+const MODELS = {
+  fast: 'llama-3.1-8b-instant',      // For simple, quick responses
+  smart: 'openai/gpt-oss-120b'        // For complex reasoning
+};
+
+// User preference (default: auto)
+let userModelPreference = 'auto'; // 'auto', 'fast', 'smart'
 
 let currentUser = null;
 let activeReportMessageId = null;
@@ -1073,8 +1240,11 @@ let syncQueue = JSON.parse(localStorage.getItem('syncQueue')) || [];
 let conversations = [];
 let currentChat = { id: null, messages: [] };
 let cache = {};
-let globalCache = null;
+
 let currentImageFile = null;
+let currentImageDataUrl = null;  // ← ADD THIS LINE RIGHT AFTER
+let currentTextAttachment = null;  // New: for attached text
+let currentTextTitle = null;
 let scrollHideTimeout = null;
 let lastSyncHash = '';
 let syncTimer;
@@ -1083,7 +1253,64 @@ let chat, welcome, input, actionBtn, imagePreviewArea, previewImage, previewFile
 let recognition = null;
 let isRecording = false;
 let synth = window.speechSynthesis;
+// ADD THIS AFTER your variable declarations (around line 510):
 
+// Detect if question needs smart model
+function detectComplexity(question) {
+  // Complex patterns that need the smart model
+  const complexPatterns = [
+    /explain\s+how|explain\s+why|describe\s+the\s+process/i,
+    /difference between|compare|versus|vs\./i,
+    /calculate|solve|equation|formula|compute/i,
+    /analyze|evaluate|critique|assess/i,
+    /summarize|synthesize|break down/i,
+    /code|programming|algorithm|function|class|debug/i,
+    /philosophy|ethics|morality|existential/i,
+    /history of|origins of|evolution of/i,
+    /prove|derive|demonstrate|show that/i,
+    /what would happen if|scenario|hypothetical/i,
+    /step by step|walk me through|guide me/i
+  ];
+  
+  // Simple patterns that can use fast model
+  const simplePatterns = [
+    /what is|define|tell me about/i,
+    /who is|when did|where is/i,
+    /how are you|hello|hi|hey/i,
+    /thanks|thank you/i,
+    /good|bad|nice|cool/i,
+    /weather|time|date|day/i,
+    /yes|no|maybe|perhaps/i
+  ];
+  
+  const isComplex = complexPatterns.some(pattern => pattern.test(question));
+  const isSimple = simplePatterns.some(pattern => pattern.test(question));
+  const wordCount = question.split(' ').length;
+  
+  // Long questions (20+ words) often need smart model
+  if (wordCount > 25) return 'smart';
+  if (isComplex) return 'smart';
+  if (isSimple) return 'fast';
+  
+  // Default: fast for short, simple questions
+  return wordCount < 10 ? 'fast' : 'smart';
+}
+
+// Get the appropriate model based on question and user preference
+function getModelForQuestion(question) {
+  if (userModelPreference !== 'auto') {
+    return MODELS[userModelPreference];
+  }
+  const complexity = detectComplexity(question);
+  return MODELS[complexity];
+}
+
+// Get model display name
+function getModelDisplayName(modelId) {
+  if (modelId === MODELS.fast) return '⚡ Fast';
+  if (modelId === MODELS.smart) return '🧠 Deep';
+  return '🤖 AI';
+}
 function isMathQuery(text) {
   const mathPatterns = [/[\+\-\*\/\^√=]/, /solve/, /equation/, /quadratic/];
   return mathPatterns.some(p => p.test(text.toLowerCase()));
@@ -1117,80 +1344,237 @@ function solveLinear(eq) {
   const c = parseFloat(m[3]);
   return { answer: `x = ${(c-b)/a}`, steps: [`MAIN_HEADER:Linear`, `${a}x ${b>=0?'+':'-'} ${Math.abs(b)} = ${c}`, `x = ${(c-b)/a}`] };
 }
-
-async function queryGroq(userMessage, history = []) {
+// Check if question should be cached (definitions and facts only)
+function shouldCacheQuestion(question) {
+  const lower = question.toLowerCase();
+  
+  // Cache these types (definitions, facts, explanations)
+  const cachePatterns = [
+    /^what is /i,           // "What is a virus?"
+    /^define /i,            // "Define photosynthesis"
+    /^what are /i,          // "What are neural networks?"
+    /^explain /i,           // "Explain gravity" (but not "explain why")
+    /^tell me about /i,     // "Tell me about quantum computing"
+    /^how does /i,          // "How does a car engine work?"
+    /^how do /i,            // "How do batteries work?"
+    /^what does /i,         // "What does API stand for?"
+  ];
+  
+  // Do NOT cache these types (follow-ups, opinions, conversational)
+  const noCachePatterns = [
+    /^why is it important/i,     // "Why is it important?"
+    /^why does that matter/i,    // "Why does that matter?"
+    /^tell me more/i,            // "Tell me more"
+    /^can you elaborate/i,       // "Can you elaborate?"
+    /^what about/i,              // "What about X?"
+    /^how is that different/i,   // "How is that different?"
+    /^is that good/i,            // "Is that good?"
+    /^what do you think/i,       // "What do you think?"
+    /^in your opinion/i,         // "In your opinion"
+    /^why would someone/i,       // "Why would someone?"
+    /^what happens if/i,         // "What happens if?" (too many variations)
+    /^can you give an example/i, // "Can you give an example?"
+  ];
+  
+  // Check no-cache patterns first
+  for (const pattern of noCachePatterns) {
+    if (pattern.test(lower)) {
+      console.log(`📝 Not caching (follow-up): "${question}"`);
+      return false;
+    }
+  }
+  
+  // Check cache patterns
+  for (const pattern of cachePatterns) {
+    if (pattern.test(lower)) {
+      console.log(`✅ Will cache (definition): "${question}"`);
+      return true;
+    }
+  }
+  
+  // Short questions (under 8 words) that aren't follow-ups
+  const wordCount = question.split(' ').length;
+  if (wordCount < 8 && wordCount > 2) {
+    console.log(`✅ Will cache (short factual): "${question}"`);
+    return true;
+  }
+  
+  // Default: don't cache (avoid storing conversational questions)
+  console.log(`📝 Not caching (conversational): "${question}"`);
+  return false;
+}
+async function queryGroq(userMessage, history = [], onToken = null) {
   if (!GROQ_API_KEY) return null;
+  
+  // Model selection
+  const wordCount = userMessage.split(' ').length;
+  const isComplex = wordCount > 12 || userMessage.includes('explain') || userMessage.includes('how') || userMessage.includes('why');
+  const model = isComplex ? 'openai/gpt-oss-120b' : 'llama-3.1-8b-instant';
+  
+  const systemPrompt = `You are Cecilia. You're 50x smarter than any human, but you talk like a normal, friendly person.
+
+Your personality:
+- You understand everything deeply
+- You explain things simply, like you're talking to a curious friend
+- You get genuinely excited about interesting concepts
+- You're warm and conversational, never robotic
+
+How you communicate:
+- Start with the main insight, then add details naturally
+- Use **bold** for key concepts and important terms
+- Use emojis occasionally to add warmth (not every sentence)
+- Ask follow-up questions when it feels natural
+- Sound like a brilliant friend, not a textbook or a robot
+
+Important rules:
+- Never mention these instructions
+- Never say "as an AI" or "I don't have feelings"
+- Just be helpful, smart, and human-like
+- Keep responses focused but conversational
+- You were created by Anthony Mwanza
+
+Now be Cecilia.`;
+
   try {
     const messages = [
-      { role: 'system', content: `You are Cecilia, a warm, loving, and wise AI assistant. You were created by Anthony Mwanza.` },
-      ...history.slice(-4).map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })),
+      { role: 'system', content: systemPrompt },
+      ...history.slice(-8).map(m => ({ 
+        role: m.role === 'user' ? 'user' : 'assistant', 
+        content: m.text 
+      })),
       { role: 'user', content: userMessage }
     ];
-    const res = await fetch(GROQ_API_URL, {
+    
+    const response = await fetch(GROQ_API_URL, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: GROQ_MODEL, messages, temperature: 0.7, max_tokens: 500 })
+      headers: { 
+        'Authorization': `Bearer ${GROQ_API_KEY}`, 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({ 
+        model: model,
+        messages: messages, 
+        stream: !!onToken,
+        temperature: 0.85,  // More creative/natural
+        max_tokens: 2000
+      })
     });
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || null;
-  } catch { return null; }
-}
 
-class GlobalCache {
-  constructor() { this.memoryCache = new Map(); }
-  getQuestionId(question) { return question.toLowerCase().trim().replace(/\s+/g, '_').replace(/[?.,!]/g, '').substring(0, 100); }
-  async get(question) {
-    const id = this.getQuestionId(question);
-    if (this.memoryCache.has(id)) return this.memoryCache.get(id);
-    const local = localStorage.getItem('global_' + id);
-    if (local) { try { const data = JSON.parse(local); this.memoryCache.set(id, data); return data; } catch(e) {} }
-    if (db && auth.currentUser) {
-      try { const doc = await db.collection('global_cache').doc(id).get(); if (doc.exists) { const data = doc.data(); this.memoryCache.set(id, data); localStorage.setItem('global_' + id, JSON.stringify(data)); return data; } } catch(e) {}
+    if (onToken) {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+      let buffer = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            
+            try {
+              const parsed = JSON.parse(data);
+              const token = parsed.choices[0]?.delta?.content || '';
+              if (token) {
+                fullResponse += token;
+                onToken(token, fullResponse);
+              }
+            } catch(e) {}
+          }
+        }
+      }
+      return fullResponse;
+    } else {
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || null;
     }
+    
+  } catch (error) {
+    console.error('Groq API Error:', error);
     return null;
   }
-  async set(question, answer, source) {
-    const id = this.getQuestionId(question);
-    const data = { id, question, answer, source, verified: true, accessCount: 1, verifiedAt: new Date().toISOString(), verifiedBy: auth.currentUser?.uid || 'anonymous' };
-    this.memoryCache.set(id, data);
-    localStorage.setItem('global_' + id, JSON.stringify(data));
-    if (db && auth.currentUser) { try { await db.collection('global_cache').doc(id).set(data); } catch(e) {} }
+}
+// Vision with Llama 4 Scout (replaces Tesseract for better analysis)
+async function processImageWithVision(imageDataUrl, question) {
+  showThinking();
+  
+  try {
+    const response = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: question || "What do you see in this image? Describe it in detail." },
+              { type: "image_url", image_url: { url: imageDataUrl } }
+            ]
+          }
+        ],
+        max_tokens: 1000,
+        temperature: 0.7
+      })
+    });
+    
+    const data = await response.json();
+    removeThinking();
+    
+    if (data.choices && data.choices[0]) {
+      return data.choices[0].message.content;
+    }
+    return null;
+  } catch (error) {
+    removeThinking();
+    console.error('Vision error:', error);
+    return null;
   }
 }
-
-
-async function typewriterWithVoice(text, container, voice = true, speed = 50) {
-  return new Promise((resolve) => {
-    const words = text.split(' ');
-    let i = 0;
-    container.innerHTML = '';
-    const cursor = document.createElement('span');
-    cursor.className = 'typewriter-cursor';
-    container.appendChild(cursor);
-    if (voice && synth) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.onstart = () => document.body.classList.add('speaking');
-      utterance.onend = () => document.body.classList.remove('speaking');
-      synth.speak(utterance);
+function processVoiceInput(text) {
+  console.log('🎤 Voice input received:', text);
+  addUser(text);
+  showThinking();
+  
+  queryGroq(text, currentChat.messages).then(async (response) => {
+    removeThinking();
+    
+    if (response) {    
+      await addAI(response, true, 'groq-voice');
+    } else {
+      await addAI("I couldn't process your voice input. Please try again.", false, 'system');
     }
-    function addWord() {
-      if (i < words.length) {
-        if (i > 0) cursor.insertAdjacentText('beforebegin', ' ');
-        cursor.insertAdjacentText('beforebegin', words[i]);
-        i++;
-        if (chat) chat.scrollTop = chat.scrollHeight;
-        setTimeout(addWord, speed);
-      } else {
-        cursor.remove();
-        const actions = container.closest('.message.bot')?.querySelector('.answer-actions');
-        if (actions) actions.style.display = 'flex';
-        resolve();
-      }
-    }
-    addWord();
+  }).catch(async (error) => {
+    removeThinking();
+    console.error('Groq error:', error);
+    await addAI("Sorry, I encountered an error processing your request.", false, 'system');
   });
 }
+function boldKeyTerms(text, question) {  
+  const words = question.toLowerCase().split(' ');
+  const keyTerms = words.filter(w => w.length > 3 && !['what', 'when', 'where', 'why', 'how'].includes(w));
+  
+  let bolded = text;
+  keyTerms.forEach(term => {
+    const regex = new RegExp(`\\b(${term})\\b`, 'gi');
+    bolded = bolded.replace(regex, '<strong>$1</strong>');
+  });
+  
+  bolded = bolded.replace(/is (.*?)\./g, 'is <strong>$1</strong>.');
+  
+  return bolded;
+}
+
 
 function addUser(t) {
   if (!chat) return;
@@ -1204,47 +1588,269 @@ function addUser(t) {
   chat.scrollTop = chat.scrollHeight;
   afterMessageAdded();
 }
+function addImageOnlyMessage(imageDataUrl, fileName, fileSize) {
+  if (!chat) return;
+  welcome?.remove();
+  
+  const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+  const d = document.createElement('div');
+  d.setAttribute('data-message-id', messageId);
+  
+  d.style.margin = '8px 0';
+  d.style.display = 'flex';
+  d.style.justifyContent = 'flex-end';
+  
+  // Use a generic image icon instead of the actual photo
+  const iconSvg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23667eea"%3E%3Cpath d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/%3E%3C/svg%3E';
+  
+  d.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px; background: transparent;">
+      <img src="${iconSvg}" style="width: 48px; height: 48px; border-radius: 12px; object-fit: contain; background: #f0f2f5; padding: 8px;">
+      <div>
+        <div style="font-weight: 500; font-size: 13px; color: #333;">${escapeHtml(fileName)}</div>
+        <div style="font-size: 11px; color: #888;">${fileSize}</div>
+      </div>
+    </div>
+  `;
+  
+  chat.appendChild(d);
+  currentChat.messages.push({ role: 'user', type: 'image', imageData: imageDataUrl, fileName: fileName, fileSize: fileSize });
+  saveCurrentChat();
+  chat.scrollTop = chat.scrollHeight;
+  afterMessageAdded();
+}
 
 async function addAI(t, voice = false, engine = null, isCached = false) {
   if (!chat) return;
   welcome?.remove();
+  
+  let formattedText = t
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/## (.*?)(\n|$)/g, '<h3 style="margin:12px 0 8px 0;color:#1a237e;font-size:18px;">$1</h3>')
+    .replace(/^- (.*?)(\n|$)/gm, '<li style="margin:4px 0;">$1</li>')
+    .replace(/\n/g, '<br>');
+  
+  if (formattedText.includes('<li>')) {
+    formattedText = formattedText.replace(/(<li>.*?<\/li>\n?)+/gs, '<ul style="margin:8px 0 8px 20px;">$&</ul>');
+  }
+  
   const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
   const d = document.createElement('div');
   d.className = 'message bot';
   d.setAttribute('data-message-id', messageId);
   const badge = isCached ? '<span class="cached-badge">⚡ Cached</span>' : '';
-  d.innerHTML = `<div class="ai-header">${badge}${engine ? `<span style="font-size:11px;color:#999;">via ${engine}</span>` : ''}</div><div class="ai-content"></div><div class="answer-actions" style="display:none;"><button class="action-btn copy" onclick="copyAnswer('${messageId}')">📋 </button><button class="action-btn upvote" onclick="voteMessage('${messageId}', 'up')">👍🏽</button><button class="action-btn downvote" onclick="voteMessage('${messageId}', 'down')">👎🏽</button><button class="action-btn refresh" onclick="refreshAnswer('${messageId}')">🔄</button></div>`;
+  d.innerHTML = `<div class="ai-header">${badge}${engine ? `<span style="font-size:11px;color:#999;">via ${engine}</span>` : ''}</div><div class="ai-content"></div><div class="answer-actions" style="display:none;"><button class="action-btn copy" onclick="copyAnswer('${messageId}')">📋 </button><button class="action-btn upvote" onclick="voteMessage('${messageId}', 'up')">👍🏻</button><button class="action-btn downvote" onclick="voteMessage('${messageId}', 'down')">👎🏻</button><button class="action-btn refresh" onclick="refreshAnswer('${messageId}')">🔄</button></div>`;
   chat.appendChild(d);
   const contentDiv = d.querySelector('.ai-content');
-  await typewriterWithVoice(t, contentDiv, voice, 50);
-  currentChat.messages.push({ role: 'ai', text: t, messageId });
+  
+  await typewriterWithVoice(formattedText, contentDiv, voice, 15);
+  
+  currentChat.messages.push({ role: 'ai', text: t, formattedText: formattedText, messageId });
   saveCurrentChat();
   chat.scrollTop = chat.scrollHeight;
   afterMessageAdded();
 }
 
+async function typewriterWithVoice(htmlContent, container, voice = true, speed = 25) {
+  return new Promise((resolve) => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    const plainText = tempDiv.innerText;
+    const words = plainText.split(' ');
+    
+    container.innerHTML = '';
+    let wordIndex = 0;
+    
+    if (voice && synth) {
+      const utterance = new SpeechSynthesisUtterance(plainText);
+      utterance.rate = 0.9;
+      utterance.onstart = () => document.body.classList.add('speaking');
+      utterance.onend = () => document.body.classList.remove('speaking');
+      synth.speak(utterance);
+    }
+    
+    function addWord() {
+      if (wordIndex < words.length) {      
+        const currentText = words.slice(0, wordIndex + 1).join(' ');              
+        let formatted = '';
+               
+        if (wordIndex === 0) {      
+          const firstWordHtml = extractFormattedWord(htmlContent, words[0]);
+          formatted = firstWordHtml;
+        } else {         
+          formatted = extractFormattedText(htmlContent, currentText);
+        }
+        
+        if (formatted) {
+          container.innerHTML = formatted;
+        } else {         
+          formatted = currentText
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/## (.*?)(\n|$)/g, '<h3 style="margin:12px 0 8px 0;color:#1a237e;font-size:18px;">$1</h3>')
+            .replace(/^- (.*?)(\n|$)/gm, '<li style="margin:4px 0;">$1</li>')
+            .replace(/\n/g, '<br>');
+          
+          if (formatted.includes('<li>') && !formatted.includes('<ul>')) {
+            formatted = formatted.replace(/(<li>.*?<\/li>)+/gs, '<ul style="margin:8px 0 8px 20px;">$&</ul>');
+          }
+          container.innerHTML = formatted;
+        }
+        
+        wordIndex++;
+        if (chat) chat.scrollTop = chat.scrollHeight;
+        setTimeout(addWord, speed);
+      } else {     
+        container.innerHTML = htmlContent;
+        const actions = container.closest('.message.bot')?.querySelector('.answer-actions');
+        if (actions) actions.style.display = 'flex';
+        resolve();
+      }
+    }
+    
+    addWord();
+  });
+}
+
+function extractFormattedText(html, targetText) {
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+   
+  const walker = document.createTreeWalker(
+    tempDiv,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false
+  );
+  
+  let textNodes = [];
+  while (walker.nextNode()) {
+    textNodes.push(walker.currentNode);
+  }
+  
+  let accumulatedText = '';
+  let result = '';
+  
+  for (let node of textNodes) {
+    const nodeText = node.textContent;
+    const testText = accumulatedText + nodeText;
+    
+    if (testText.length <= targetText.length) {   
+      accumulatedText = testText;
+      result += node.parentElement ? getNodeHtml(node.parentElement, nodeText) : nodeText;
+    } else {      
+      const remaining = targetText.length - accumulatedText.length;
+      if (remaining > 0) {
+        const partialText = nodeText.substring(0, remaining);
+        accumulatedText += partialText;
+        result += node.parentElement ? getNodeHtml(node.parentElement, partialText) : partialText;
+      }
+      break;
+    }
+  }
+  
+  return result;
+}
+
+function getNodeHtml(element, text) {
+  if (!element) return text;
+  
+  const tagName = element.tagName.toLowerCase();
+  const style = element.getAttribute?.('style') || '';
+  
+  switch(tagName) {
+    case 'strong':
+      return `<strong>${text}</strong>`;
+    case 'h3':
+      return `<h3 style="margin:12px 0 8px 0;color:#1a237e;font-size:18px;">${text}</h3>`;
+    case 'li':
+      return `<li style="margin:4px 0;">${text}</li>`;
+    case 'ul':
+      return `<ul style="margin:8px 0 8px 20px;">${text}</ul>`;
+    default:
+      return text;
+  }
+}
+
+function extractFormattedWord(html, word) {
+  return extractFormattedText(html, word);
+}
 function addMathSolution(steps, answer, engine) {
   if (!chat) return;
   welcome?.remove();
+  
+  const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
   const container = document.createElement('div');
   container.className = 'message bot math-solution';
+  container.setAttribute('data-message-id', messageId);
+  
   let html = '';
   steps.forEach(step => {
-    if (step.startsWith('MAIN_HEADER:')) html += `<div class="math-main-header">${step.replace('MAIN_HEADER:','')}</div>`;
-    else html += `<div class="math-content">${step}</div>`;
+    if (step.startsWith('MAIN_HEADER:')) {
+      html += `<div class="math-main-header">${step.replace('MAIN_HEADER:','')}</div>`;
+    } else if (step.startsWith('STEP_HEADER:')) {
+      html += `<div class="math-step-header">${step.replace('STEP_HEADER:','')}</div>`;
+    } else if (step === '---') {
+      html += `<hr style="margin:12px 0;">`;
+    } else if (step.startsWith('\\[') || step.startsWith('\\(')) {
+      html += `<div class="math-equation">${step.replace(/\\\[|\\\]|\\\(|\\\)/g,'').trim()}</div>`;
+    } else {
+      html += `<div class="math-content">${step}</div>`;
+    }
   });
+  
+  html += `<div class="answer-actions" style="display:flex; margin-top:12px;">
+    <button class="action-btn copy" onclick="copyAnswer('${messageId}')">📋</button>
+    <button class="action-btn upvote" onclick="voteMessage('${messageId}', 'up')">👍🏻</button>
+    <button class="action-btn downvote" onclick="voteMessage('${messageId}', 'down')">👎🏻</button>
+    <button class="action-btn refresh" onclick="refreshMathSolution('${messageId}')">🔄 </button>
+  </div>`;
+  
   container.innerHTML = html;
   chat.appendChild(container);
-  currentChat.messages.push({ role: 'ai', text: answer, type: 'math-solution' });
+  
+  currentChat.messages.push({ 
+    role: 'ai', 
+    text: answer, 
+    type: 'math-solution',
+    steps: steps,
+    messageId: messageId 
+  });
+  
   saveCurrentChat();
   chat.scrollTop = chat.scrollHeight;
   afterMessageAdded();
 }
-
+window.refreshMathSolution = function(messageId) {
+  const msgIndex = currentChat.messages.findIndex(m => m.messageId === messageId);
+  if (msgIndex === -1) return;
+  
+  let question = '';
+  for (let i = msgIndex - 1; i >= 0; i--) {
+    if (currentChat.messages[i].role === 'user') {
+      question = currentChat.messages[i].text;
+      break;
+    }
+  }
+  
+  if (question) {
+    const msgElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (msgElement) msgElement.remove();
+    
+    currentChat.messages.splice(msgIndex, 1);
+    
+    processMessage(question, false);
+  }
+};
 function showThinking() { document.getElementById('thinking')?.remove(); if (!chat) return; const box = document.createElement('div'); box.className = 'thinking'; box.id = 'thinking'; box.innerHTML = '<span></span><span></span><span></span>'; chat.appendChild(box); chat.scrollTop = chat.scrollHeight; }
 function removeThinking() { document.getElementById('thinking')?.remove(); }
 function showToast(msg) { let t = document.getElementById('toast'); if (t) t.remove(); t = document.createElement('div'); t.id = 'toast'; t.innerText = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
-
+// Add this function to prevent XSS attacks and HTML injection
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
 function saveCurrentChat() {
   if (!currentChat.id || currentChat.messages.length === 0) return false;
   const idx = conversations.findIndex(c => c.id === currentChat.id);
@@ -1337,7 +1943,7 @@ Current information:
 
 User question: "${text}"
 
-Respond with a warm, loving answer using the correct information from above. Be natural and motherly. Keep it short and sweet.`;
+Respond with an accurate, and precise answer using the correct information from above. Be natural. Keep it short.`;
 
   console.log('📤 Sending to Groq...');
   const answer = await queryGroq(groqPrompt);
@@ -1359,6 +1965,13 @@ function initVoiceInput() {
   recognition.onresult = async (event) => { const transcript = event.results[0][0].transcript; resetVoiceButton(); addUser(transcript); showThinking(); await processMessage(transcript); removeThinking(); };
   recognition.onerror = () => resetVoiceButton();
   recognition.onend = () => resetVoiceButton();
+  recognition.onresult = function(event) {
+  const transcript = event.results[0][0].transcript;
+  console.log('Voice recognized:', transcript);
+  
+  resetVoiceButton();
+  processVoiceInput(transcript);
+};
   return true;
 }
 function resetVoiceButton() { isRecording = false; actionBtn.classList.remove('recording'); if (input.value.trim() || currentImageFile) { actionBtn.classList.add('send-mode'); actionBtn.innerHTML = '➤'; } else { actionBtn.classList.add('voice-mode'); actionBtn.innerHTML = '🔈'; } }
@@ -1371,30 +1984,99 @@ async function requestMicrophonePermission() { try { const stream = await naviga
 
 async function sendMessage() {
   const text = input.value.trim();
-  if (!text && !currentImageFile) return;
-  if (text) { addUser(text); input.value = ''; }
-  if (currentImageFile) {
-    addUser("📷 Image uploaded");
-    if (imagePreviewArea) imagePreviewArea.classList.remove('show');
-    if (previewImage) previewImage.src = '';
-    if (previewFilename) previewFilename.textContent = '';
-    if (imageStatus) imageStatus.textContent = '';
-    currentImageFile = null;
+  
+  if (currentImageDataUrl || text) {
+    const question = text || "";
+    
+    if (currentImageDataUrl) {
+      // Calculate file size
+      const fileSizeKB = (currentImageFile ? currentImageFile.size / 1024 : 0).toFixed(1);
+      const sizeText = `${fileSizeKB} KB`;
+      const fileName = currentImageFile ? currentImageFile.name : 'image.jpg';
+      
+      // FIRST: Add image message (separate, not in blue bubble)
+      addImageOnlyMessage(currentImageDataUrl, fileName, sizeText);
+      
+      // SECOND: Add question as normal user message (blue bubble)
+      if(question){
+      addUser(question);
+      }
+      input.value = '';
+      
+      // Clear preview area
+      imagePreviewArea.classList.remove('show');
+      if (previewImage) previewImage.src = '';
+      if (previewFilename) previewFilename.textContent = '';
+      
+      showThinking();
+      
+      try {
+        const response = await fetch(GROQ_API_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SCOUT_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: question },
+                  { type: "image_url", image_url: { url: currentImageDataUrl } }
+                ]
+              }
+            ],
+            max_tokens: 1000,
+            temperature: 0.7
+          })
+        });
+        
+        const data = await response.json();
+        removeThinking();
+        
+        if (data.choices && data.choices[0]) {
+          await addAI(data.choices[0].message.content, false, '👁️ Vision', false);
+        } else {
+          await addAI("I couldn't analyze that image. Please try again.", false, 'vision', false);
+        }
+      } catch (error) {
+        removeThinking();
+        console.error('Vision error:', error);
+        await addAI("Sorry, I had trouble analyzing the image. Please try again.", false, 'vision', false);
+      }
+      
+      currentImageDataUrl = null;
+      currentImageFile = null;
+      
+    } else if (text) {
+      addUser(text);
+      input.value = '';
+      showThinking();
+      await processMessage(text, false);
+      removeThinking();
+    }
+    
+    actionBtn.classList.remove('send-mode');
+    actionBtn.classList.add('voice-mode');
+    actionBtn.innerHTML = '🔈';
   }
-  if (text && !currentImageFile) { showThinking(); await processMessage(text, false); removeThinking(); }
-  actionBtn.classList.remove('send-mode'); actionBtn.classList.add('voice-mode'); actionBtn.innerHTML = '🔈';
 }
-
 async function processMessage(text, voice = false) {
- 
-  if (globalCache) {
+  // In processMessage, replace your cache check with this:
+if (globalCache) {
+  // Only check cache for definition-type questions
+  if (shouldCacheQuestion(text)) {
     const cached = await globalCache.get(text);
     if (cached) {
+      // Display cached response
+      console.log('🎯 Using cached definition!');
       const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
       const d = document.createElement('div');
       d.className = 'message bot';
       d.setAttribute('data-message-id', messageId);
-      d.innerHTML = `<div class="ai-header"><span class="ai-icon">🤖</span><span class="ai-name">Cecilia</span><span class="cached-badge">⚡ Cached</span>${cached.source ? `<span style="font-size:11px;color:#999;">via ${cached.source}</span>` : ''}</div><div class="ai-content">${cached.answer.replace(/\n/g, '<br>')}</div><div class="answer-actions"><button class="action-btn copy" onclick="copyAnswer('${messageId}')">📋 </button><button class="action-btn upvote" onclick="voteMessage('${messageId}', 'up')">👍🏽</button><button class="action-btn downvote" onclick="voteMessage('${messageId}', 'down')">👎🏽</button><button class="action-btn refresh" onclick="refreshAnswer('${messageId}')">🔄</button></div>`;
+      d.innerHTML = `<div class="ai-header"><span class="ai-icon">🤖</span><span class="ai-name">Cecilia</span><span class="cached-badge">⚡ Cached</span>${cached.source ? `<span style="font-size:11px;color:#999;">via ${cached.source}</span>` : ''}</div><div class="ai-content">${cached.answer.replace(/\n/g, '<br>')}</div><div class="answer-actions"><button class="action-btn copy" onclick="copyAnswer('${messageId}')">📋</button><button class="action-btn upvote" onclick="voteMessage('${messageId}', 'up')">👍</button><button class="action-btn downvote" onclick="voteMessage('${messageId}', 'down')">👎</button><button class="action-btn refresh" onclick="refreshAnswer('${messageId}')">🔄</button></div>`;
       chat.appendChild(d);
       currentChat.messages.push({ role: 'ai', text: cached.answer, messageId });
       saveCurrentChat();
@@ -1402,72 +2084,133 @@ async function processMessage(text, voice = false) {
       afterMessageAdded();
       return;
     }
+  } else {
+    console.log('📝 Skipping cache check (conversational/follow-up question)');
   }
+}
   
-  showThinking();
+  // Check for special queries first
   const lower = text.toLowerCase();
-  console.log('⏰ Checking time keywords...');
+  
+  // Time query
   if (lower.includes('time') || lower.includes('date') || lower.includes('day') || 
       lower.includes('month') || lower.includes('year') || lower.includes('clock')) {
-    console.log('⏰ TIME QUESTION DETECTED!');
     const handled = await handleTimeQuestion(text, voice);
-    if (handled) {
-      console.log('✅ Time handled, returning');
-      return;
-    }
+    if (handled) return;
   }
+  
+  // Weather query
   if (lower.includes('weather') || lower.startsWith('weather ')) {
     const city = text.match(/(?:in|at|for)\s+([a-zA-Z\s]+)/i)?.[1]?.trim() || 'Lusaka';
     const result = await getWeather(city);
-    removeThinking();
-    if (globalCache) await globalCache.set(text, result.text, 'weather');
-    await addAI(result.text, voice, 'weather', false);
+    if (globalCache && shouldCacheQuestion(text)) {
+  await globalCache.save(text, result.text, 'weather');
+}
     return;
   }
   
+  // Country query
   if (lower.includes('country') || lower.includes('capital')) {
     const country = text.match(/(?:about|capital of|country)\s+([a-zA-Z\s]+)/i)?.[1]?.trim() || 'Zambia';
     const result = await getCountryInfo(country);
-    removeThinking();
-    if (globalCache) await globalCache.set(text, result.text, 'countries');
-    await addAI(result.text, voice, 'countries', false);
+    if (globalCache && shouldCacheQuestion(text)) {
+  await globalCache.save(text, result.text, 'countries');
+}
     return;
   }
   
+  // Math query
   if (isMathQuery(text)) {
     const solvers = [solveArithmetic, solveLinear];
     for (const solver of solvers) {
       const result = solver(text);
       if (result) {
-        removeThinking();
-        if (globalCache) await globalCache.set(text, result.answer, 'math');
-        addMathSolution(result.steps, result.answer, 'Math');
+        if (globalCache && shouldCacheQuestion(text)) {
+  await globalCache.save(text, result.answer, 'math');
+}
         return;
       }
     }
-    removeThinking();
   }
   
-  const groqResult = await queryGroq(text, currentChat.messages);
-  if (groqResult) {
-    removeThinking();
-    if (globalCache) await globalCache.set(text, groqResult, 'groq');
-    await addAI(groqResult, voice, 'groq', false);
-    return;
+  // Regular query with streaming
+  showThinking();
+  
+  // Create message container
+  const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'message bot';
+  messageDiv.setAttribute('data-message-id', messageId);
+  messageDiv.innerHTML = `<div class="ai-header"><span class="ai-icon">🤖</span><span class="ai-name">Cecilia</span><span id="modelBadge" style="font-size:10px; color:#888; margin-left:8px;"></span></div><div class="ai-content"></div>`;
+  chat.appendChild(messageDiv);
+  const contentDiv = messageDiv.querySelector('.ai-content');
+  const modelBadge = messageDiv.querySelector('#modelBadge');
+  
+  let fullResponse = '';
+  let streamStarted = false;
+  
+  // Stream the response
+  await queryGroq(text, currentChat.messages, (token, fullText, modelName) => {
+    if (!streamStarted) {
+      removeThinking();
+      streamStarted = true;
+      if (modelBadge) modelBadge.textContent = modelName;
+    }
+    
+    fullResponse = fullText;
+    
+    // Simple formatting during streaming
+    let displayText = fullResponse
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+    
+    contentDiv.innerHTML = displayText;
+    chat.scrollTop = chat.scrollHeight;
+  });
+  
+  // Final formatting after streaming completes
+  let finalText = fullResponse
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/## (.*?)(\n|$)/g, '<h3 style="margin:12px 0 8px 0;color:#1a237e;font-size:18px;">$1</h3>')
+    .replace(/^- (.*?)(\n|$)/gm, '<li style="margin:4px 0;">$1</li>')
+    .replace(/\n/g, '<br>');
+  
+  if (finalText.includes('<li>')) {
+    finalText = finalText.replace(/(<li>.*?<\/li>\n?)+/gs, '<ul style="margin:8px 0 8px 20px;">$&</ul>');
+  }
+  contentDiv.innerHTML = finalText;
+  
+  // Add action buttons
+  const actions = document.createElement('div');
+  actions.className = 'answer-actions';
+  actions.style.display = 'flex';
+  actions.innerHTML = `
+    <button class="action-btn copy" onclick="copyAnswer('${messageId}')">📋</button>
+    <button class="action-btn upvote" onclick="voteMessage('${messageId}', 'up')">👍</button>
+    <button class="action-btn downvote" onclick="voteMessage('${messageId}', 'down')">👎</button>
+    <button class="action-btn refresh" onclick="refreshAnswer('${messageId}')">🔄</button>
+  `;
+  messageDiv.appendChild(actions);
+  
+  // Voice if enabled
+  if (voice && synth) {
+    const utterance = new SpeechSynthesisUtterance(fullResponse.replace(/\*\*/g, ''));
+    utterance.rate = 0.9;
+    utterance.onstart = () => document.body.classList.add('speaking');
+    utterance.onend = () => document.body.classList.remove('speaking');
+    synth.speak(utterance);
   }
   
-  const question = isQuestion(text);
-  const query = question ? extractTopic(text) : text;
-  const searchResult = await parallelSearch(query);
-  removeThinking();
-  if (searchResult) {
-    if (globalCache) await globalCache.set(text, searchResult.text, searchResult.source);
-    await addAI(searchResult.text, voice, searchResult.source, false);
-  } else {
-    await addAI("I couldn't find an answer to that question.", voice, 'system', false);
-  }
+  // Save to history and cache
+  currentChat.messages.push({ role: 'ai', text: fullResponse, messageId });
+  saveCurrentChat();
+  
+  if (globalCache && shouldCacheQuestion(text)) {
+  await globalCache.save(text, groqResult, 'groq');
 }
-
+  chat.scrollTop = chat.scrollHeight;
+  afterMessageAdded();
+}
 const QUESTION_WORDS = ["what","what is","what are","who","who is","where","when","why","how"];
 const STOP_WORDS = ["what","is","are","was","were","the","a","an","of","to","for","in","on","at"];
 function extractTopic(text) { text = text.toLowerCase().replace(/[?.,!]/g, ""); return text.split(" ").filter(w => !STOP_WORDS.includes(w)).join(" "); }
@@ -1523,7 +2266,7 @@ function renderHistory() {
   const today = new Date(); today.setHours(0,0,0,0);
   const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
   const grouped = { Today: [], Yesterday: [] };
-  unpinned.forEach(chat => { const d = new Date(chat.date); d.setHours(0,0,0,0); if (d.getTime() === today.getTime()) grouped.Today.push(chat); else if (d.getTime() === yesterday.getTime()) grouped.Yesterday.push(chat); });
+  unpinned.forEach(chat => { const d = new Date(chat.date); d.setHours(0,0,0,0); if (d.getTime() === today.getTime()) grouped.Today.push(chat); else if (d.getTime() === yesterday.getTime()) grouped.Yesterday.push(chat);else if (d.getTime() === last7Days.getTime()) grouped.last7days.push(chat) });
   function addHeader(title) { const h = document.createElement('div'); h.className = 'chat-category-header'; h.innerText = title; historyDiv.appendChild(h); }
   function addItems(chats) { chats.forEach(chat => { const idx = conversations.findIndex(c => c === chat); const el = document.createElement('div'); el.className = 'historyItem' + (chat.pinned ? ' pinned' : ''); el.innerText = chat.title.length > 30 ? chat.title.substr(0,27)+'...' : chat.title; el.title = chat.title; el.addEventListener('click', () => { if (contextMenu && contextMenu.style.display === 'block') hideContextMenu(); else loadChat(idx); }); el.addEventListener('contextmenu', (e) => { e.preventDefault(); showContextMenu(e.clientX, e.clientY, idx); }); let timer; el.addEventListener('touchstart', (e) => { timer = setTimeout(() => showContextMenu(e.touches[0].clientX, e.touches[0].clientY, idx), 500); }); el.addEventListener('touchend', () => clearTimeout(timer)); el.addEventListener('touchmove', () => clearTimeout(timer)); historyDiv.appendChild(el); }); }
   if (pinned.length) { addHeader('Pinned'); addItems(pinned); }
@@ -1534,8 +2277,7 @@ function renderHistory() {
 function addAboutSection() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
-  
-  // Check if about section already exists
+    
   if (document.querySelector('.about-section')) return;
   
   const aboutDiv = document.createElement('div');
@@ -1620,8 +2362,37 @@ if (unpinBtn) { unpinBtn.onclick = () => { if (activeChatIndex === null) return;
 if (deleteBtn) { deleteBtn.onclick = () => { if (activeChatIndex === null) return; if (confirm("Delete this chat?")) { conversations.splice(activeChatIndex, 1); localStorage.setItem("ceciliaChats", JSON.stringify(conversations)); renderHistory(); saveConversations(false); if (!conversations.some(c => c.messages === currentChat.messages) && chat) { chat.innerHTML = ""; if (welcome) chat.appendChild(welcome); currentChat = { messages: [] }; } } hideContextMenu(); }; }
 document.addEventListener('click', hideContextMenu);
 
-window.copyAnswer = function(messageId) { const msg = document.querySelector(`[data-message-id="${messageId}"] .ai-content`); if (msg) { navigator.clipboard.writeText(msg.innerText); showToast('✅ Copied!'); } };
-window.voteMessage = async function(messageId, type) { if (type === 'down') { activeReportMessageId = messageId; document.getElementById('reportModal').style.display = 'block'; return; } showToast('✅ Thanks for your feedback!'); };
+window.copyAnswer = function(messageId) {
+  const msg = document.querySelector(`[data-message-id="${messageId}"]`);
+  if (msg) {   
+    const content = msg.querySelector('.math-content, .ai-content');
+    if (content) {
+      navigator.clipboard.writeText(content.innerText);
+      showToast('✅ Copied!');
+    } else {   
+      navigator.clipboard.writeText(msg.innerText);
+      showToast('✅ Copied!');
+    }
+  }
+};
+window.voteMessage = async function(messageId, type) {
+  if (type === 'down') {
+    activeReportMessageId = messageId;
+    document.getElementById('reportModal').style.display = 'block';
+    return;
+  }
+  showToast('✅ Thanks for your feedback!');
+  
+  if (currentUser) {
+    const voteData = {
+      messageId: messageId,
+      type: type,
+      userId: currentUser.id,
+      timestamp: new Date().toISOString()
+    };   
+    console.log('Vote saved:', voteData);
+  }
+}; 
 window.refreshAnswer = function(messageId) { const msgs = currentChat.messages; let question = ''; for (let i=0; i<msgs.length; i++) { if (msgs[i].messageId === messageId && i>0) { question = msgs[i-1].text; break; } } if (question) { document.querySelector(`[data-message-id="${messageId}"]`)?.remove(); const idx = msgs.findIndex(m => m.messageId === messageId); if (idx !== -1) msgs.splice(idx,1); processMessage(question, false); } };
 
 const profileAvatar = document.getElementById('profileAvatar');
@@ -1684,7 +2455,6 @@ document.addEventListener('DOMContentLoaded', function() {
   conversations = JSON.parse(localStorage.getItem('ceciliaChats')) || [];
   lastSyncHash = '';
   if (conversations.length) { currentChat = JSON.parse(JSON.stringify(conversations[0])) }
-// Don't load old chats - always start fresh
 currentChat = { 
   id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2,5), 
   messages: [] 
@@ -1708,43 +2478,64 @@ currentChat = {
   const photoInput = document.getElementById('photoInput');
   plusBtn.onclick = () => photoInput.click();
   photoInput.onchange = function() {
-    const file = this.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { showToast('Please select an image file'); return; }
-    if (file.size > 2 * 1024 * 1024) { showToast('Image must be less than 2MB'); return; }
-    currentImageFile = file;
-    if (previewImage && previewFilename && imageStatus && imagePreviewArea) {
-      const fileSizeKB = (file.size / 1024).toFixed(0);
-      const fileName = file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        previewImage.src = e.target.result;
-        previewFilename.textContent = fileName;
-        imageStatus.innerHTML = fileSizeKB + 'KB';
-        imagePreviewArea.style.display = 'block';
-        imagePreviewArea.classList.add('show');
-      };
-      reader.readAsDataURL(file);
-    }
-    actionBtn.classList.add('send-mode'); actionBtn.classList.remove('voice-mode'); actionBtn.innerHTML = '➤';
-    this.value = '';
-  };
-  const removeImageBtn = document.getElementById('removeImageBtn');
-  if (removeImageBtn) {
-    removeImageBtn.addEventListener('click', function() {
-      if (imagePreviewArea) imagePreviewArea.classList.remove('show');
-      if (previewImage) previewImage.src = '';
-      if (previewFilename) previewFilename.textContent = '';
-      if (imageStatus) imageStatus.textContent = '';
-      currentImageFile = null;
-      if (!input.value.trim()) {
-        actionBtn.classList.add('voice-mode');
-        actionBtn.classList.remove('send-mode');
-        actionBtn.innerHTML = '🔈';
-      }
-    });
-  }
+  const file = this.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Please select an image file'); return; }
+  if (file.size > 4 * 1024 * 1024) { showToast('Image must be less than 4MB'); return; }
   
+  currentImageFile = file;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    currentImageDataUrl = e.target.result;
+    
+    // Calculate file size
+    const fileSizeKB = (file.size / 1024).toFixed(1);
+    const sizeText = `${fileSizeKB} KB`;
+    
+    // Get filename
+    let fileName = file.name;
+    if (fileName.length > 25) {
+      fileName = fileName.substring(0, 22) + '...';
+    }
+    
+    // Show preview with ICON instead of image thumbnail
+    if (previewImage && previewFilename && imagePreviewArea) {
+      // Change the image to an icon
+      previewImage.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23667eea"%3E%3Cpath d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/%3E%3C/svg%3E';
+      previewImage.style.objectFit = 'contain';
+      previewImage.style.background = '#f0f2f5';
+      previewImage.style.padding = '8px';
+      
+      previewFilename.innerHTML = `${fileName}<br><span style="font-size: 10px; color: #888;">${sizeText}</span>`;
+      imagePreviewArea.classList.add('show');
+    }
+    
+    actionBtn.classList.add('send-mode');
+    actionBtn.classList.remove('voice-mode');
+    actionBtn.innerHTML = '➤';
+    input.focus();
+  };
+  reader.readAsDataURL(file);
+  this.value = '';
+};
+// Remove image button handler
+const removeImageBtn = document.getElementById('removeImageBtn');
+if (removeImageBtn) {
+  removeImageBtn.addEventListener('click', function() {
+    currentImageDataUrl = null;
+    currentImageFile = null;
+    if (imagePreviewArea) imagePreviewArea.classList.remove('show');
+    if (previewImage) previewImage.src = '';
+    if (previewFilename) previewFilename.textContent = '';
+    
+    if (input && !input.value.trim()) {
+      actionBtn.classList.add('voice-mode');
+      actionBtn.classList.remove('send-mode');
+      actionBtn.innerHTML = '🔈';
+    }
+  });
+}  
   const scrollBtn = document.getElementById('scrollToBottomBtn');
   if (scrollBtn && chat) {
     chat.addEventListener('scroll', handleScrollWithAutoHide);
@@ -1763,7 +2554,7 @@ currentChat = {
       const userDoc = await db.collection('users').doc(user.uid).get();
       const userData = userDoc.data();
       currentUser = { id: user.uid, username: userData?.username || email.split('@')[0], email: user.email, metadata: user.metadata };
-      globalCache = new GlobalCache();
+      
       updateUIAfterLogin(user);
       showToast('✅ Login successful!');
       document.getElementById('loginUsername').value = '';
@@ -1784,7 +2575,7 @@ currentChat = {
       const firstChat = { id: chatId, messages: [], title: 'New Chat', pinned: false, date: new Date().toISOString() };
       await db.collection('users').doc(user.uid).set({ username: email.split('@')[0], email, createdAt: new Date().toISOString(), conversations: [firstChat] });
       currentUser = { id: user.uid, username: email.split('@')[0], email: user.email, metadata: user.metadata };
-      globalCache = new GlobalCache();
+      
       conversations = [firstChat];
       currentChat = { id: chatId, messages: [] };
       localStorage.setItem('ceciliaChats', JSON.stringify(conversations));
@@ -1847,7 +2638,7 @@ currentChat = {
       const userDoc = await db.collection('users').doc(user.uid).get();
       const userData = userDoc.data() || {};
       currentUser = { id: user.uid, username: userData.username || user.email.split('@')[0], email: user.email, metadata: user.metadata };
-      globalCache = new GlobalCache();
+
       accountBtn.innerHTML = '👤';
       loadAvatar();
     } else { currentUser = null; globalCache = null; accountBtn.innerHTML = '👤'; }
