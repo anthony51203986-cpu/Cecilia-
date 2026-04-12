@@ -26,12 +26,16 @@ jobs:
       
       - name: Inject API Keys
         run: |
+          # Replace placeholders with actual secrets
           sed -i "s|GROQ_API_KEY_PLACEHOLDER|${{ secrets.GROQ_API_KEY }}|g" index.html
           sed -i "s|SCOUT_API_KEY_PLACEHOLDER|${{ secrets.SCOUT_API_KEY }}|g" index.html
           sed -i "s|WOLFRAM_APP_ID_PLACEHOLDER|${{ secrets.WOLFRAM_APP_ID }}|g" index.html
+          sed -i "s|WISGATE_API_KEY_PLACEHOLDER|${{ secrets.WISGATE_API_KEY }}|g" index.html
+          
           echo "✅ Groq API key injected"
           echo "✅ Scout API key injected"
           echo "✅ Wolfram App ID injected"
+          echo "✅ Wisgate API key injected"
       
       - name: Setup Pages
         uses: actions/configure-pages@v5
