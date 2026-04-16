@@ -3935,7 +3935,7 @@ async function testVoice(voiceId) {
   const voice = ORPHEUS_VOICES.find(v => v.id === voiceId);
   if (!voice) return;
   
-  const apiKey = localStorage.getItem('groq_api_key');
+  const apiKey = GROQ_API_KEY;
   if (!apiKey) {
     showToast('⚠️ Please add your Groq API key in settings first');
     return;
