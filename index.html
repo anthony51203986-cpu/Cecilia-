@@ -28,7 +28,7 @@
   window.storage = storage;
   
   db.enablePersistence().catch(err => console.log('Persistence:', err));
-  console.log("✅ Firebase initialized");
+  
 </script>
 
 <style>
@@ -1320,8 +1320,8 @@ margin-top: 20px;
 }
 
 #menuBtn svg {
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
 }
 
 #menuBtn:hover {
@@ -1338,8 +1338,8 @@ margin-top: 20px;
 }
 
 #newChat svg {
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
 }
 
 #newChat:hover {
@@ -1356,8 +1356,8 @@ margin-top: 20px;
 }
 
 #accountBtn svg {
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
 }
 
 #accountBtn:hover {
@@ -3009,6 +3009,29 @@ body {
 .action-btn.refresh {
   margin-left: auto;
 }
+/* FORCE refresh button to the right end - OVERRIDE ALL */
+.answer-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  width: 100% !important;
+  gap: 8px !important;
+}
+
+.answer-actions .action-btn.refresh,
+.action-btn.refresh {
+  margin-left: auto !important;
+  order: 999 !important;  /* Forces it to the end */
+}
+
+/* Make sure other buttons stay in order */
+.answer-actions .action-btn.copy { order: 1 !important; }
+.answer-actions .action-btn.upvote { order: 2 !important; }
+.answer-actions .action-btn.downvote { order: 3 !important; }
+.answer-actions .action-btn.play { order: 4 !important; }
+.answer-actions .action-btn.share { order: 5 !important; }
+.answer-actions .action-btn.refresh { order: 6 !important; margin-left: auto !important; }
 </style>
 </head>
 
@@ -3304,7 +3327,7 @@ body {
 class GlobalCache {
   constructor() { 
     this.memoryCache = new Map(); 
-    console.log("✅ GlobalCache initialized");
+    
   }
   
   getQuestionId(question) { 
@@ -3492,7 +3515,7 @@ function reportKeyFailure(keyIndex, error) {
 function reportKeySuccess(keyIndex) {
   if (keyFailureCount[keyIndex] > 0) {
     keyFailureCount[keyIndex] = Math.max(0, keyFailureCount[keyIndex] - 1);
-    console.log(`✅ Key ${keyIndex + 1} succeeded. Failure count: ${keyFailureCount[keyIndex]}`);
+    
   }
   keyLastUsed[keyIndex] = Date.now();
 }
@@ -3935,16 +3958,15 @@ async function testVoice(voiceId) {
   const voice = ORPHEUS_VOICES.find(v => v.id === voiceId);
   if (!voice) return;
   
+  // ✅ Use hardcoded GROQ_API_KEY instead of localStorage
   const apiKey = GROQ_API_KEY;
   if (!apiKey) {
-    showToast('⚠️ Please add your Groq API key in settings first');
+    showToast('⚠️ Groq API key not configured');
     return;
   }
   
-  // Get speech speed
   const speechSpeed = parseFloat(localStorage.getItem('cecilia_speech_speed') || '1.0');
-  
-  const testPhrase = `Hello! This is ${voice.name} speaking. How can I help you today?`;
+  const testPhrase = `Hello! This is ${voice.name} speaking.`;
   
   showToast(`🔊 Testing ${voice.name} voice...`);
   
@@ -3968,8 +3990,6 @@ async function testVoice(voiceId) {
     const audioBlob = await response.blob();
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
-    
-    // Apply speed to test voice too
     audio.playbackRate = speechSpeed;
     
     audio.onended = () => {
@@ -3980,7 +4000,7 @@ async function testVoice(voiceId) {
     
   } catch (error) {
     console.error('Test voice error:', error);
-    showToast('❌ Failed to test voice. Check your API key.');
+    showToast('❌ Failed to test voice');
   }
 }
 // Pause Icon for toggle
@@ -4204,7 +4224,7 @@ function shouldCacheQuestion(question) {
   // Check cache patterns
   for (const pattern of cachePatterns) {
     if (pattern.test(lower)) {
-      console.log(`✅ Will cache (definition): "${question}"`);
+      
       return true;
     }
   }
@@ -4212,7 +4232,7 @@ function shouldCacheQuestion(question) {
   // Short questions (under 8 words) that aren't follow-ups
   const wordCount = question.split(' ').length;
   if (wordCount < 8 && wordCount > 2) {
-    console.log(`✅ Will cache (short factual): "${question}"`);
+    
     return true;
   }
   
@@ -4493,7 +4513,7 @@ Respond in the same language as the user. Keep responses natural and engaging.`;
       }
     }
     
-    console.log(`✅ Wisgate response received (${fullResponse.length} chars)`);
+    
     return fullResponse;
     
   } catch (error) {
@@ -4574,7 +4594,6 @@ async function speakWithOrpheus(text, messageId, onStart = null, onEnd = null, o
   const selectedVoice = localStorage.getItem('cecilia_voice') || 'troy';
   const speechSpeed = parseFloat(localStorage.getItem('cecilia_speech_speed') || '1.0');
   
-  // ✅ FIXED: Use the hardcoded GROQ_API_KEY constant instead of localStorage
   const apiKey = GROQ_API_KEY;
   if (!apiKey) {
     console.log('⚠️ No Groq API key found for TTS');
@@ -4582,16 +4601,14 @@ async function speakWithOrpheus(text, messageId, onStart = null, onEnd = null, o
     return Promise.resolve();
   }
   
-  // Check if this message's speech is already cached
   const cacheKey = `${messageId}_${selectedVoice}`;
   let audioUrl = speechCache.get(cacheKey);
   
   if (audioUrl) {
     console.log('📦 Using cached speech for message:', messageId);
-    return playAudioFromUrl(audioUrl, speechSpeed, onStart, onEnd);
+    return playAudioFromUrl(audioUrl, speechSpeed, onStart, onEnd, messageId);
   }
   
-  // Create abort controller for this request
   const abortController = new AbortController();
   currentAbortController = abortController;
   
@@ -4614,32 +4631,27 @@ async function speakWithOrpheus(text, messageId, onStart = null, onEnd = null, o
     });
     
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`TTS error (${response.status}):`, errorText);
       throw new Error(`TTS failed: ${response.status}`);
     }
     
     const audioBlob = await response.blob();
     audioUrl = URL.createObjectURL(audioBlob);
     
-    // Cache the generated speech
     speechCache.set(cacheKey, audioUrl);
-    console.log('💾 Cached speech for message:', messageId, 'Cache size:', speechCache.size);
+    console.log('💾 Cached speech for message:', messageId);
     
-    // Limit cache size to 20 messages (prevent memory issues)
     if (speechCache.size > 20) {
       const firstKey = speechCache.keys().next().value;
       const oldUrl = speechCache.get(firstKey);
       if (oldUrl) URL.revokeObjectURL(oldUrl);
       speechCache.delete(firstKey);
-      console.log('🗑️ Removed oldest cached speech');
     }
     
-    return playAudioFromUrl(audioUrl, speechSpeed, onStart, onEnd);
+    return playAudioFromUrl(audioUrl, speechSpeed, onStart, onEnd, messageId);
     
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.log('🛑 TTS request cancelled by user');
+      console.log('🛑 TTS request cancelled');
       if (onCancel) onCancel();
     } else {
       console.error('Orpheus error:', error);
@@ -4650,33 +4662,61 @@ async function speakWithOrpheus(text, messageId, onStart = null, onEnd = null, o
   }
 }
 
-// Helper function to play audio from URL (cached or new)
-async function playAudioFromUrl(audioUrl, speechSpeed, onStart, onEnd) {
+// Update playAudioFromUrl to accept messageId and reset button
+async function playAudioFromUrl(audioUrl, speechSpeed, onStart, onEnd, messageId) {
   const audio = new Audio(audioUrl);
   audio.playbackRate = speechSpeed;
   console.log(`🔊 Playing at ${speechSpeed}x speed`);
   
   currentAudioInstance = audio;
   currentAudioUrl = audioUrl;
+  currentPlayingMessageId = messageId;
   
   if (onStart) onStart();
   
   return new Promise((resolve) => {
     audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
       if (currentOrpheusAudio === audio) currentOrpheusAudio = null;
       currentAudioInstance = null;
       currentAudioUrl = null;
       currentAbortController = null;
       currentPlayingMessageId = null;
+      
+      // Reset the play button for this message
+      const msg = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (msg) {
+        const playBtn = msg.querySelector('.play');
+        if (playBtn) {
+          playBtn.classList.remove('speaking');
+          playBtn.innerHTML = MINIMAL_PLAY_ICON;
+          playBtn.title = 'Listen';
+        }
+      }
+      
       if (onEnd) onEnd();
       resolve();
     };
+    
     audio.onerror = () => {
+      URL.revokeObjectURL(audioUrl);
       if (currentOrpheusAudio === audio) currentOrpheusAudio = null;
       currentAudioInstance = null;
       currentAudioUrl = null;
       currentAbortController = null;
       currentPlayingMessageId = null;
+      
+      // Reset the play button on error too
+      const msg = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (msg) {
+        const playBtn = msg.querySelector('.play');
+        if (playBtn) {
+          playBtn.classList.remove('speaking');
+          playBtn.innerHTML = MINIMAL_PLAY_ICON;
+          playBtn.title = 'Listen';
+        }
+      }
+      
       if (onEnd) onEnd();
       resolve();
     };
@@ -5178,20 +5218,20 @@ window.speakAnswer = async function(messageId) {
   
   const playBtn = msg.querySelector('.play');
   
-  // If this message is currently playing, pause/stop it
-  if (currentPlayingMessageId === messageId) {
+  // If this message is currently playing, stop it
+  if (currentPlayingMessageId === messageId && currentAudioInstance && !currentAudioInstance.paused) {
     cancelCurrentSpeech();
     if (playBtn) {
       playBtn.classList.remove('speaking');
       playBtn.innerHTML = MINIMAL_PLAY_ICON;
       playBtn.title = 'Listen';
     }
-    showToast('⏹️ Stopped');
+    
     return;
   }
   
   // Stop any currently playing audio from different message
-  if (currentPlayingMessageId !== null) {
+  if (currentPlayingMessageId !== null && currentPlayingMessageId !== messageId) {
     cancelCurrentSpeech();
     const prevMsg = document.querySelector(`[data-message-id="${currentPlayingMessageId}"]`);
     if (prevMsg) {
@@ -5204,9 +5244,6 @@ window.speakAnswer = async function(messageId) {
     }
   }
   
-  // Set current message as playing
-  currentPlayingMessageId = messageId;
-  
   // Change button to pause icon
   if (playBtn) {
     playBtn.innerHTML = PAUSE_ICON;
@@ -5214,40 +5251,28 @@ window.speakAnswer = async function(messageId) {
     playBtn.classList.add('speaking');
   }
   
-  // Check if speech is already cached
-  const selectedVoice = localStorage.getItem('cecilia_voice') || 'troy';
-  const cacheKey = `${messageId}_${selectedVoice}`;
   
-  if (speechCache.has(cacheKey)) {
-    showToast('📦 Loading cached speech...');
-  } else {
-    showToast('🎙️ Generating speech...');
-  }
   
   await speakWithOrpheus(textToSpeak, messageId,
     () => {
-      console.log('🔊 Speaking answer...');
-      if (playBtn && currentPlayingMessageId === messageId) {
-        playBtn.title = 'Pause';
-      }
-      showToast('🔊 Speaking...');
+      
     },
     () => {
-      if (playBtn && currentPlayingMessageId === messageId) {
+      // This is called when speech ends naturally
+      if (playBtn && currentPlayingMessageId !== messageId) {
         playBtn.classList.remove('speaking');
         playBtn.innerHTML = MINIMAL_PLAY_ICON;
         playBtn.title = 'Listen';
       }
-      currentPlayingMessageId = null;
-      showToast('✅ Done');
+      
     },
     () => {
-      if (playBtn && currentPlayingMessageId === messageId) {
+      // Called if cancelled
+      if (playBtn) {
         playBtn.classList.remove('speaking');
         playBtn.innerHTML = MINIMAL_PLAY_ICON;
         playBtn.title = 'Listen';
       }
-      currentPlayingMessageId = null;
     }
   );
 };
@@ -6967,18 +6992,18 @@ window.shareAnswer = async function(messageId) {
         title: 'Cecilia AI Response',
         text: textToShare,
       });
-      showToast('✅ Shared!');
+      
     } catch (err) {
       if (err.name !== 'AbortError') {
         // Fallback to copy
         await navigator.clipboard.writeText(textToShare);
-        showToast('📋 Copied to clipboard');
+        
       }
     }
   } else {
     // Fallback for desktop - copy to clipboard
     await navigator.clipboard.writeText(textToShare);
-    showToast('📋 Copied to clipboard');
+    
   }
 };
 let activeChatIndex = null;
@@ -7080,10 +7105,10 @@ window.copyAnswer = function(messageId) {
     const content = msg.querySelector('.math-content, .ai-content');
     if (content) {
       navigator.clipboard.writeText(content.innerText);
-      showToast('✅ Copied!');
+      
     } else {   
       navigator.clipboard.writeText(msg.innerText);
-      showToast('✅ Copied!');
+      
     }
   }
 };
@@ -7697,7 +7722,7 @@ document.getElementById('resetPasswordBtn')?.addEventListener('click', sendPassw
   });
   
   initVoiceInput();
-  console.log('✅ Cecilia AI ready');
+  
 });
 
 function togglePassword(inputId) {
@@ -7728,7 +7753,7 @@ function initPlusMenu() {
     return;
   }
   
-  console.log('✅ Plus menu initialized');
+  
   
   // Toggle menu on plus button click
   plusBtn.addEventListener('click', (e) => {
@@ -8902,8 +8927,7 @@ async function queryMistral(prompt, maxTokens = 100) {
       let response = data.choices[0].message.content;
       // Clean markdown
       response = response.replace(/\*\*\*/g, '').replace(/\*\*/g, '').replace(/\*/g, '').replace(/#/g, '').trim();
-      console.log('✅ Mistral intent:', response);
-      return response;
+       return response;
     }
     return null;
   } catch (error) {
@@ -8957,7 +8981,7 @@ async function searchTavily(query, daysBack = 7) {
     if (articleCount > 8) articleCount = 8;
     if (articleCount < 6) articleCount = Math.min(6, relevantResults.length);
     
-    console.log(`✅ Tavily: ${articleCount} relevant articles (${relevantResults.length} total, filtered by relevance)`);
+    
     
     return {
       results: relevantResults.slice(0, articleCount),
@@ -9145,7 +9169,7 @@ function createSourcePill(sources, totalResults) {
     if (typeof window.sendMessage === 'function' && typeof window.addAI === 'function') {
       clearInterval(waitForCecilia);
       
-      console.log('✅ Cecilia found! Installing news interceptor...');
+      
       
       // Store original sendMessage
       const originalSendMessage = window.sendMessage;
@@ -9180,7 +9204,7 @@ function createSourcePill(sources, totalResults) {
         }
       };
       
-      console.log('✅ News interceptor ACTIVE! Try asking: "latest news about SpaceX"');
+      
     }
   }, 100);
 })();
