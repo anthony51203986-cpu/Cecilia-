@@ -3309,6 +3309,46 @@ body {
   background: #6c6c70 !important;
   transform: scale(0.92);
 }
+/* Make answer actions container full width */
+.message.bot {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.answer-actions {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  gap: 8px !important;
+  margin-top: 12px !important;
+}
+
+/* Group all buttons except refresh on the left */
+.answer-actions .left-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Force refresh button to far right */
+.answer-actions .refresh,
+.action-btn.refresh {
+  margin-left: auto !important;
+  margin-right: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+/* If you can't modify the HTML structure, use this selector instead */
+.answer-actions button:not(.refresh) {
+  order: 1;
+}
+
+.answer-actions .refresh {
+  order: 999 !important;
+  margin-left: auto !important;
+}
 </style>
 </head>
 
@@ -5617,15 +5657,17 @@ formattedText = formattedText
   d.setAttribute('data-message-id', messageId);
   d.innerHTML = `
     <div class="ai-content">${formattedText}</div>
- <div class="answer-actions" style="display: flex; margin-top: 12px;">
-  <button class="action-btn copy" onclick="copyAnswer('${messageId}')" title="Copy">${COPY_ICON}</button>
-  <button class="action-btn upvote" onclick="voteMessage('${messageId}', 'up')" title="Upvote">${UPVOTE_ICON}</button>
-  <button class="action-btn downvote" onclick="voteMessage('${messageId}', 'down')" title="Downvote">${DOWNVOTE_ICON}</button>
-  <button class="action-btn play" onclick="speakAnswer('${messageId}')" title="Listen">${MINIMAL_PLAY_ICON}</button>
-  <button class="action-btn share" onclick="shareAnswer('${messageId}')" title="Share">${SHARE_ICON}</button>
-  <button class="action-btn refresh" onclick="refreshAnswer('${messageId}')" title="Refresh">${REFRESH_ICON}</button>
-</div>
-  `;
+    <div class="answer-actions" style="display: flex; margin-top: 12px; width: 100%;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="action-btn copy" onclick="copyAnswer('${messageId}')" title="Copy">${COPY_ICON}</button>
+        <button class="action-btn upvote" onclick="voteMessage('${messageId}', 'up')" title="Upvote">${UPVOTE_ICON}</button>
+        <button class="action-btn downvote" onclick="voteMessage('${messageId}', 'down')" title="Downvote">${DOWNVOTE_ICON}</button>
+        <button class="action-btn play" onclick="speakAnswer('${messageId}')" title="Listen">${MINIMAL_PLAY_ICON}</button>
+        <button class="action-btn share" onclick="shareAnswer('${messageId}')" title="Share">${SHARE_ICON}</button>
+      </div>
+      <button class="action-btn refresh" onclick="refreshAnswer('${messageId}')" title="Refresh" style="margin-left: auto;">${REFRESH_ICON}</button>
+    </div>
+`;
   chat.appendChild(d);
   
   currentChat.messages.push({ 
