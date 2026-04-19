@@ -48,15 +48,10 @@ jobs:
           sed -i "s|CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER|${{ secrets.CLOUDFLARE_ACCOUNT_ID }}|g" index.html
           sed -i "s|CLOUDFLARE_API_TOKEN_PLACEHOLDER|${{ secrets.CLOUDFLARE_API_TOKEN }}|g" index.html
           
-          # NewsAPI
-          sed -i "s|NEWS_API_KEY_PLACEHOLDER|${{ secrets.NEWS_API_KEY }}|g" index.html
-          
           # Wolfram
           sed -i "s|WOLFRAM_APP_ID_PLACEHOLDER|${{ secrets.WOLFRAM_APP_ID }}|g" index.html
           
-          # Wisgate
-          sed -i "s|WISGATE_API_KEY_PLACEHOLDER|${{ secrets.WISGATE_API_KEY }}|g" index.html
-          
+      
           echo "✅ Groq API key injected"
           echo "✅ Scout API key injected"
           echo "✅ Gemini API key injected"
@@ -65,9 +60,7 @@ jobs:
           echo "✅ Tavily API key injected"
           echo "✅ Cloudflare Account ID injected"
           echo "✅ Cloudflare API Token injected"
-          echo "✅ NewsAPI key injected"
           echo "✅ Wolfram App ID injected"
-          echo "✅ Wisgate API key injected"
       
       - name: Setup Pages
         uses: actions/configure-pages@v5
