@@ -61,7 +61,7 @@ jobs:
           echo "✅ Cloudflare Account ID injected"
           echo "✅ Cloudflare API Token injected"
           echo "✅ Wolfram App ID injected"
-      
+  
       - name: Setup Pages
         uses: actions/configure-pages@v5
       
