@@ -4439,7 +4439,7 @@ function selectVoice(voiceId) {
   const voice = ORPHEUS_VOICES.find(v => v.id === voiceId);
   showToast(`🎙️ Voice changed to ${voice.name}`);
   
-  // Update any selected styling
+
   document.querySelectorAll('.voice-option').forEach(option => {
     const checkIcon = option.querySelector('.check-icon');
     if (option.getAttribute('data-voice-id') === voiceId) {
