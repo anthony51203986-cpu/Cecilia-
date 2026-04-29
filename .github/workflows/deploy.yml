@@ -31,10 +31,8 @@ jobs:
           sed -i "s|SCOUT_API_KEY_PLACEHOLDER|${{ secrets.SCOUT_API_KEY }}|g" index.html
           
           # Google Gemini
-          sed -i "s|GEMINI_API_KEY_PLACEHOLDER|${{ secrets.GEMINI_API_KEY }}|g" index.html
+          sed -i "s|CEREBRAS_API_KEY_PLACEHOLDER|${{ secrets.CEREBRAS_API_KEY }}|g" index.html
           
-          sed -i "s|GEMINI_KEY_1_PLACEHOLDER|${{ secrets.GEMINI_KEY_1 }}|g" index.html
-          sed -i "s|GEMINI_KEY_2_PLACEHOLDER|${{ secrets.GEMINI_KEY_2}}|g" index.html
           # Google Gemma
           sed -i "s|GEMMA_API_KEY_PLACEHOLDER|${{ secrets.GEMMA_API_KEY }}|g" index.html
           
@@ -54,7 +52,7 @@ jobs:
       
           echo "✅ Groq API key injected"
           echo "✅ Scout API key injected"
-          echo "✅ Gemini API key injected"
+          echo "✅ Cerebras API key injected"
           echo "✅ Gemma API key injected"
           echo "✅ Mistral API key injected"
           echo "✅ Tavily API key injected"
