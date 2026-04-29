@@ -30,7 +30,7 @@ jobs:
           sed -i "s|GROQ_API_KEY_PLACEHOLDER|${{ secrets.GROQ_API_KEY }}|g" index.html
           sed -i "s|SCOUT_API_KEY_PLACEHOLDER|${{ secrets.SCOUT_API_KEY }}|g" index.html
           
-          # Google Gemini
+          # Cerebras
           sed -i "s|CEREBRAS_API_KEY_PLACEHOLDER|${{ secrets.CEREBRAS_API_KEY }}|g" index.html
           
           # Google Gemma
