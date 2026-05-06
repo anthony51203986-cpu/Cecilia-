@@ -33,18 +33,16 @@ jobs:
           # Cerebras 
           sed -i "s|CEREBRAS_API_KEY_PLACEHOLDER|${{ secrets.CEREBRAS_API_KEY }}|g" index.html
           
-          # Google Gemma
-          sed -i "s|GEMMA_API_KEY_PLACEHOLDER|${{ secrets.GEMMA_API_KEY }}|g" index.html
+          # Open router 
+          sed -i "s|OPENROUTER_API_KEY_PLACEHOLDER|${{ secrets.OPENROUTER_API_KEY }}|g" index.html
           
           # Mistral AI
           sed -i "s|MISTRAL_API_KEY_PLACEHOLDER|${{ secrets.MISTRAL_API_KEY }}|g" index.html
           
           # Tavily
           sed -i "s|TAVILY_API_KEY_PLACEHOLDER|${{ secrets.TAVILY_API_KEY }}|g" index.html
+  
           
-          # Cloudflare
-          sed -i "s|CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER|${{ secrets.CLOUDFLARE_ACCOUNT_ID }}|g" index.html
-          sed -i "s|CLOUDFLARE_API_TOKEN_PLACEHOLDER|${{ secrets.CLOUDFLARE_API_TOKEN }}|g" index.html
           
           # Wolfram
           sed -i "s|WOLFRAM_APP_ID_PLACEHOLDER|${{ secrets.WOLFRAM_APP_ID }}|g" index.html
@@ -53,11 +51,11 @@ jobs:
           echo "✅ Groq API key injected"
           echo "✅ Scout API key injected"
           echo "✅ Cerebras API key injected"
-          echo "✅ Gemma API key injected"
+          echo "✅ Open router API key injected"
           echo "✅ Mistral API key injected"
           echo "✅ Tavily API key injected"
-          echo "✅ Cloudflare Account ID injected"
-          echo "✅ Cloudflare API Token injected"
+          
+          
           echo "✅ Wolfram App ID injected"
   
       - name: Setup Pages
