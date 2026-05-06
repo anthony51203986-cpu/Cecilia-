@@ -7981,7 +7981,7 @@ if (fontSizeDisplay) fontSizeDisplay.innerText = sizeName;
   const file = this.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) { showToast('Please select an image file'); return; }
-  if (file.size > 2 * 1024 * 1024) { showToast('Image must be less than 2MB'); return; } 
+  if (file.size > 8 * 1024 * 1024) { showToast('Image must be less than 8MB'); return; } 
   currentImageFile = file;  
   const reader = new FileReader();
   reader.onload = function(e) {
